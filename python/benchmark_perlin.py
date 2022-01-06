@@ -399,6 +399,10 @@ if __name__=='__main__':
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
         odir = "/scratch/shared/{}/experiments".format(CARTESIUS_SCRATCH_USERNAME)
         computer_env = "Cartesius"
+    elif fnmatch.fnmatchcase(os.uname()[1], "*.snellius.*"):  # Snellius
+        SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
+        odir = "/scratch-shared/{}/experiments".format(SNELLIUS_SCRATCH_USERNAME)
+        computer_env = "Snellius"
     else:
         odir = "/var/scratch/experiments"
     print("running {} on {} (uname: {}) - branch '{}' - (target) N: {} - argv: {}".format(scenario, computer_env, os.uname()[1], branch, target_N, sys.argv[1:]))
