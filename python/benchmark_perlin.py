@@ -122,7 +122,7 @@ def perlin_waves(periodic_wrap=False, write_out=False):
                 wave_x = math.sin(sinx_coord + perlin_power_x * velmag[t, i, j])  # 2.0 *
                 wave_y = math.cos(cosy_coord + perlin_power_y * velmag[t, i, j])  # 2.0 *
                 wave[t, i, j] = ((wave_x + wave_y) / 2.0 + 1.0) / 2.0
-    print("wave: {}".format(wave[0,32:48,32:48]))
+    # print("wave: {}".format(wave[0,32:48,32:48]))
     U = np.gradient(wave, edge_order=1, axis=1)
     U = np.transpose(U, (0,2,1))
     V = np.gradient(wave, edge_order=1, axis=2)
@@ -394,19 +394,19 @@ if __name__=='__main__':
     odir = ""
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
         # odir = "/scratch/{}/experiments".format(os.environ['USER'])
-        odir = "/scratch/{}/experiments".format("ckehl")
+        odir = "/scratch/{}/experiments/parcels_benchmarking".format("ckehl")
         computer_env = "Gemini"
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Cartesius
-        CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
-        odir = "/scratch/shared/{}/experiments".format(CARTESIUS_SCRATCH_USERNAME)
-        computer_env = "Lrenz"
+        CARTESIUS_SCRATCH_USERNAME = 'ckehl'
+        odir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/parcels_benchmarking".format(CARTESIUS_SCRATCH_USERNAME)
+        computer_env = "Lorenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
-        odir = "/scratch/shared/{}/experiments".format(CARTESIUS_SCRATCH_USERNAME)
+        odir = "/scratch/shared/{}/experiments/parcels_benchmarking".format(CARTESIUS_SCRATCH_USERNAME)
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
-        odir = "/scratch-shared/{}/experiments".format(SNELLIUS_SCRATCH_USERNAME)
+        odir = "/scratch-shared/{}/experiments/parcels_benchmarking".format(SNELLIUS_SCRATCH_USERNAME)
         computer_env = "Snellius"
     else:
         odir = "/var/scratch/experiments"
