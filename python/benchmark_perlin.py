@@ -387,6 +387,7 @@ if __name__=='__main__':
     nowtime = datetime.datetime.now()
     ParcelsRandom.seed(nowtime.microsecond)
 
+    # fnmatch.fnmatchcase(os.uname()[2], "*.el*_*.x86_64*")
     branch = "soa_benchmark"
     computer_env = "local/unspecified"
     scenario = "perlin"
@@ -395,11 +396,15 @@ if __name__=='__main__':
         # odir = "/scratch/{}/experiments".format(os.environ['USER'])
         odir = "/scratch/{}/experiments".format("ckehl")
         computer_env = "Gemini"
+    elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Cartesius
+        CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
+        odir = "/scratch/shared/{}/experiments".format(CARTESIUS_SCRATCH_USERNAME)
+        computer_env = "Lrenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
         odir = "/scratch/shared/{}/experiments".format(CARTESIUS_SCRATCH_USERNAME)
         computer_env = "Cartesius"
-    elif fnmatch.fnmatchcase(os.uname()[1], "*.snellius.*"):  # Snellius
+    elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
         odir = "/scratch-shared/{}/experiments".format(SNELLIUS_SCRATCH_USERNAME)
         computer_env = "Snellius"
