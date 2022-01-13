@@ -393,7 +393,6 @@ if __name__=='__main__':
     scenario = "perlin"
     odir = ""
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
-        # odir = "/scratch/{}/experiments".format(os.environ['USER'])
         odir = "/scratch/{}/experiments/parcels_benchmarking".format("ckehl")
         computer_env = "Gemini"
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Cartesius
@@ -555,7 +554,7 @@ if __name__=='__main__':
         output_file = pset.ParticleFile(name=os.path.join(odir,out_fname+".nc"), outputdt=delta(hours=24))
     delete_func = RenewParticle
     if args.delete_particle:
-        delete_func=DeleteParticle
+        delete_func = DeleteParticle
     postProcessFuncs = []
 
     if MPI:
