@@ -6,7 +6,7 @@ Created on Fri Oct 13 15:31:22 2017
 """
 import itertools
 
-from parcels import (FieldSet, JITParticle, AdvectionRK4_3D, Field, ParticleFile, Variable, StateCode, OperationCode, ErrorCode)
+from parcels import (FieldSet, JITParticle, AdvectionRK4_3D, Field, Variable, StateCode, OperationCode, ErrorCode)
 from parcels import BenchmarkParticleSetSOA, BenchmarkParticleSetAOS, BenchmarkParticleSetNodes
 from parcels import ParticleSetSOA, ParticleSetAOS, ParticleSetNodes
 from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC  # noqa
@@ -488,7 +488,7 @@ if __name__ == "__main__":
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_rank = mpi_comm.Get_rank()
-        if mpi_rank==0:
+        if mpi_rank == 0:
             # starttime = ostime.time()
             # starttime = MPI.Wtime()
             starttime = ostime.process_time()
