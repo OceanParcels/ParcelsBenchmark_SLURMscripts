@@ -121,18 +121,30 @@ def set_nemo_fieldset(ufiles, vfiles, wfiles, tfiles, pfiles, dfiles, ifiles, bf
     bdimensions = {'lon': 'glamf', 'lat': 'gphif'}
     bchs = False
 
-    chs = {'time_counter': 1, 'depthu': 80, 'depthv': 80, 'depthw': 80, 'deptht': 80, 'y': 200, 'x': 200}
+    # chs = {'time_counter': 1, 'depthu': 80, 'depthv': 80, 'depthw': 80, 'deptht': 80, 'y': 200, 'x': 200}
+    # nchs = {  # slow
+    #     'U':       {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('depthu', 80), 'time': ('time_counter', 1)},
+    #     'V':       {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('depthv', 80), 'time': ('time_counter', 1)},
+    #     'W':       {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('depthw', 80), 'time': ('time_counter', 1)},
+    #     'T':       {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
+    #     'S':       {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
+    #     'NO3':     {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('deptht', 80), 'time': ('time_counter', 1)},
+    #     'PP':      {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
+    #     'ICE':     {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
+    #     'ICEPRES': {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
+    #     'CO2':     {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('deptht', 80), 'time': ('time_counter', 1)},
+    # }
     nchs = {
-        'U':       {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('depthu', 80), 'time': ('time_counter', 1)},
-        'V':       {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('depthv', 80), 'time': ('time_counter', 1)},
-        'W':       {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('depthw', 80), 'time': ('time_counter', 1)},
-        'T':       {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
-        'S':       {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
-        'NO3':     {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('deptht', 80), 'time': ('time_counter', 1)},
-        'PP':      {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
-        'ICE':     {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
-        'ICEPRES': {'lon': ('x', 96), 'lat': ('y', 64), 'time': ('time_counter', 1)},
-        'CO2':     {'lon': ('x', 96), 'lat': ('y', 64), 'depth': ('deptht', 80), 'time': ('time_counter', 1)},
+        'U':       {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthu', 80), 'time': ('time_counter', 1)},
+        'V':       {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthv', 80), 'time': ('time_counter', 1)},
+        'W':       {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthw', 80), 'time': ('time_counter', 1)},
+        'T':       {'lon': ('x', 128), 'lat': ('y', 96), 'time': ('time_counter', 1)},
+        'S':       {'lon': ('x', 128), 'lat': ('y', 96), 'time': ('time_counter', 1)},
+        'NO3':     {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('deptht', 80), 'time': ('time_counter', 1)},
+        'PP':      {'lon': ('x', 128), 'lat': ('y', 96), 'time': ('time_counter', 1)},
+        'ICE':     {'lon': ('x', 128), 'lat': ('y', 96), 'time': ('time_counter', 1)},
+        'ICEPRES': {'lon': ('x', 128), 'lat': ('y', 96), 'time': ('time_counter', 1)},
+        'CO2':     {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('deptht', 80), 'time': ('time_counter', 1)},
     }
     #
     #chs = (1, 75, 200, 200)

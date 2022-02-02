@@ -395,7 +395,7 @@ if __name__=='__main__':
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
         odir = "/scratch/{}/experiments/parcels_benchmarking".format("ckehl")
         computer_env = "Gemini"
-    elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Cartesius
+    elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
         odir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/parcels_benchmarking".format(CARTESIUS_SCRATCH_USERNAME)
         computer_env = "Lorenz"
