@@ -1,20 +1,23 @@
-from parcels import FieldSet, JITParticle, ScipyParticle, AdvectionRK4_3D, AdvectionRK4, ParticleFile, Variable, Field, NestedField, VectorField, StateCode, OperationCode, ErrorCode  # , timer
-from parcels.particleset_benchmark import ParticleSet_Benchmark
-from parcels.kernels import TEOSseawaterdensity as seawaterdensity
+from parcels import JITParticle, ScipyParticle, AdvectionRK4_3D, AdvectionRK4, ParticleFile, Variable, StateCode, OperationCode, ErrorCode
+from parcels import FieldSet, Field, NestedField, VectorField
+from parcels import BenchmarkParticleSetSOA, BenchmarkParticleSetAOS, BenchmarkParticleSetNodes
+from parcels import ParticleSetSOA, ParticleSetAOS, ParticleSetNodes
+from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC  # noqa
+from parcels.application_kernels import TEOSseawaterdensity as seawaterdensity
 from argparse import ArgumentParser
 from datetime import timedelta as delta
 from datetime import  datetime
 import time as ostime
 from glob import glob
-import os
-import sys
+import numpy as np
+# from numpy import *
+# import scipy.linalg
 import fnmatch
 import warnings
 import pickle
-# from numpy import *
-# import scipy.linalg
 import math
-import numpy as np
+import sys
+import os
 import gc
 warnings.filterwarnings("ignore")
 
@@ -23,6 +26,14 @@ try:
 except:
     MPI = None
 
+pset_modes = ['soa', 'aos', 'nodes']
+ptype = {'scipy': ScipyParticle, 'jit': JITParticle}
+pset_types_dry = {'soa': {'pset': ParticleSetSOA},  # , 'pfile': ParticleFileSOA, 'kernel': KernelSOA
+                  'aos': {'pset': ParticleSetAOS},  # , 'pfile': ParticleFileAOS, 'kernel': KernelAOS
+                  'nodes': {'pset': ParticleSetNodes}}  # , 'pfile': ParticleFileNodes, 'kernel': KernelNodes
+pset_types = {'soa': {'pset': BenchmarkParticleSetSOA},
+              'aos': {'pset': BenchmarkParticleSetAOS},
+              'nodes': {'pset': BenchmarkParticleSetNodes}}
 
 global_t_0 = 0
 # Fieldset grid is 30x30 deg in North Pacific
@@ -39,7 +50,6 @@ z_release = np.tile(1,[10,10])
 
 # Choose:
 simdays = 50.0 * 365.0
-#simdays = 5
 time0 = 0
 simhours = 1
 simmins = 30
@@ -233,13 +243,33 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
     # parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=int, default=365, help="runtime in days (default: 365)")
     parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*365", help="runtime in days (default: 1*365)")
+    parser.add_argument("-tp", "--type", dest="pset_type", default="soa", help="particle set type = [SOA, AOS, Nodes]")
     parser.add_argument("-G", "--GC", dest="useGC", action='store_true', default=False, help="using a garbage collector (default: false)")
+    parser.add_argument("-chs", "--chunksize", dest="chs", type=int, default=0, help="defines the chunksize level: 0=None, 1='auto', 2=fine tuned; default: 0")
+    parser.add_argument("--dry", dest="dryrun", action="store_true", default=False, help="Start dry run (no benchmarking and its classes")
     args = parser.parse_args()
+
+    pset_type = str(args.pset_type).lower()
+    assert pset_type in pset_types
+    ParticleSet = pset_types[pset_type]['pset']
+    if args.dryrun:
+        ParticleSet = pset_types_dry[pset_type]['pset']
 
     imageFileName=args.imageFileName
     periodicFlag=args.periodic
     time_in_days = int(float(eval(args.time_in_days)))
     with_GC = args.useGC
+
+    # ======================================================= #
+    # new ID generator things
+    # ======================================================= #
+    idgen = None
+    c_lib_register = None
+    if pset_type == 'nodes':
+        idgen = GenerateID_Service(SequentialIdGenerator)
+        idgen.setDepthLimits(0., 1.0)
+        idgen.setTimeLine(0, delta(days=time_in_days).total_seconds())
+        c_lib_register = LibraryRegisterC()
 
     branch = "soa_benchmark"
     computer_env = "local/unspecified"
@@ -250,31 +280,96 @@ if __name__ == "__main__":
     dirread_top = ""
     dirread_top_bgc = ""
     dirread_mesh = ""
+    basefile_str = {}
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
-        # headdir = "/scratch/{}/experiments/palaeo-parcels".format(os.environ['USER'])
+        # headdir = "/scratch/{}/experiments/deep_migration_behaviour".format(os.environ['USER'])
         headdir = "/scratch/{}/experiments/deep_migration_behaviour".format("ckehl")
-        odir = os.path.join(headdir,"BENCHres")
+        odir = os.path.join(headdir, "BENCHres")
         datahead = "/data/oceanparcels/input_data"
-        dirread = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/means/')
-        dirread_bgc = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/means/')
-        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/domain/')
+        dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'domain')
+        basefile_str = {
+            'U': 'ORCA0083-N06_2000????d05U.nc',
+            'V': 'ORCA0083-N06_2000????d05V.nc',
+            'W': 'ORCA0083-N06_2000????d05W.nc',
+            'T': 'ORCA0083-N06_2000????d05T.nc',
+            'P': 'ORCA0083-N06_2000????d05P.nc',
+            'D': 'ORCA0083-N06_2000????d05D.nc',
+            'B': 'coordinates.nc'
+        }
         computer_env = "Gemini"
+    elif os.uname()[1] in ["lorenz.science.uu.nl", ] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
+        CARTESIUS_SCRATCH_USERNAME = 'ckehl'
+        headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/deep_migration_behaviour".format(CARTESIUS_SCRATCH_USERNAME)
+        odir = os.path.join(headdir, "BENCHres")
+        datahead = "/storage/shared/oceanparcels/input_data"
+        dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'domain')
+        basefile_str = {
+            'U': 'ORCA0083-N06_2004????d05U.nc',
+            'V': 'ORCA0083-N06_2004????d05V.nc',
+            'W': 'ORCA0083-N06_2004????d05W.nc',
+            'T': 'ORCA0083-N06_2004????d05T.nc',
+            'P': 'ORCA0083-N06_2004????d05P.nc',
+            'D': 'ORCA0083-N06_2004????d05D.nc',
+            'B': 'coordinates.nc'
+        }
+        computer_env = "Lorenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch/shared/{}/experiments/deep_migration_behaviour".format(CARTESIUS_SCRATCH_USERNAME)
         odir = os.path.join(headdir, "BENCHres")
         datahead = "/projects/0/topios/hydrodynamic_data"
-        dirread = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/means/')
-        dirread_bgc = os.path.join(datahead, 'NEMO-MEDUSA_BGC/ORCA0083-N006/means/')
-        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/domain/')
+        dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'domain')
+        basefile_str = {
+            'U': 'ORCA0083-N06_2000????d05U.nc',
+            'V': 'ORCA0083-N06_2000????d05V.nc',
+            'W': 'ORCA0083-N06_2000????d05W.nc',
+            'T': 'ORCA0083-N06_2000????d05T.nc',
+            'P': 'ORCA0083-N06_2000????d05P.nc',
+            'D': 'ORCA0083-N06_2000????d05D.nc',
+            'B': 'coordinates.nc'
+        }
         computer_env = "Cartesius"
+    elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
+        SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
+        headdir = "/scratch-shared/{}/experiments/deep_migration_behaviour".format(SNELLIUS_SCRATCH_USERNAME)
+        odir = os.path.join(headdir, "BENCHres")
+        datahead = "/projects/0/topios/hydrodynamic_data"
+        dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'domain')
+        basefile_str = {
+            'U': 'ORCA0083-N06_2000????d05U.nc',
+            'V': 'ORCA0083-N06_2000????d05V.nc',
+            'W': 'ORCA0083-N06_2000????d05W.nc',
+            'T': 'ORCA0083-N06_2000????d05T.nc',
+            'P': 'ORCA0083-N06_2000????d05P.nc',
+            'D': 'ORCA0083-N06_2000????d05D.nc',
+            'B': 'coordinates.nc'
+        }
+        computer_env = "Snellius"
     else:
         headdir = "/var/scratch/dlobelle"
         odir = os.path.join(headdir, "BENCHres")
         datahead = "/data"
-        dirread = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/means/')
-        dirread_bgc = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/means/')
-        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/domain/')
+        dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
+        dirread_mesh = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'domain')
+        basefile_str = {
+            'U': 'ORCA0083-N06_2000????d05U.nc',
+            'V': 'ORCA0083-N06_2000????d05V.nc',
+            'W': 'ORCA0083-N06_2000????d05W.nc',
+            'T': 'ORCA0083-N06_2000????d05T.nc',
+            'P': 'ORCA0083-N06_2000????d05P.nc',
+            'D': 'ORCA0083-N06_2000????d05D.nc',
+            'B': 'coordinates.nc'
+        }
+
     print("running {} on {} (uname: {}) - branch '{}' - argv: {}".format(scenario, computer_env, os.uname()[1], branch, sys.argv[1:]))
 
     # ==== CARTESIUS ==== #
@@ -288,36 +383,37 @@ if __name__ == "__main__":
     # dirwrite = '/scratch/ckehl/experiments/deep_migration_behaviour/NEMOres/tests/'
     # ==== ====== ==== #
 
-    if MPI:
-        mpi_comm = MPI.COMM_WORLD
-        mpi_rank = mpi_comm.Get_rank()
-        if mpi_rank==0:
-            # global_t_0 = ostime.time()
-            # global_t_0 = MPI.Wtime()
-            global_t_0 = ostime.process_time()
-    else:
-        # global_t_0 = ostime.time()
-        global_t_0 = ostime.process_time()
+    # if MPI:
+    #     mpi_comm = MPI.COMM_WORLD
+    #     mpi_rank = mpi_comm.Get_rank()
+    #     if mpi_rank == 0:
+    #         # global_t_0 = ostime.time()
+    #         # global_t_0 = MPI.Wtime()
+    #         global_t_0 = ostime.process_time()
+    # else:
+    #     # global_t_0 = ostime.time()
+    #     global_t_0 = ostime.process_time()
 
-    ufiles = sorted(glob(dirread+'ORCA0083-N06_2000*d05U.nc')) #0105d05
-    vfiles = sorted(glob(dirread+'ORCA0083-N06_2000*d05V.nc'))
-    wfiles = sorted(glob(dirread+'ORCA0083-N06_2000*d05W.nc'))
-    pfiles = sorted(glob(dirread_bgc+'ORCA0083-N06_2000*d05P.nc'))
-    ppfiles = sorted(glob(dirread_bgc+'ORCA0083-N06_2000*d05D.nc'))  # dfiles
-    tsfiles = sorted(glob(dirread+'ORCA0083-N06_2000*d05T.nc'))
-    mesh_mask = dirread_mesh+'coordinates.nc'
+    # ======== ======== Start of FieldSet construction ======== ======== #
+    ufiles = sorted(glob(os.path.join(dirread_top, basefile_str['U']))) #0105d05
+    vfiles = sorted(glob(os.path.join(dirread_top, basefile_str['V'])))
+    wfiles = sorted(glob(os.path.join(dirread_top, basefile_str['W'])))
+    pfiles = sorted(glob(os.path.join(dirread_top_bgc, basefile_str['P'])))
+    dfiles = sorted(glob(os.path.join(dirread_top_bgc, basefile_str['D'])))
+    tfiles = sorted(glob(os.path.join(dirread_top, basefile_str['T'])))
+    mesh_mask = glob(os.path.join(dirread_mesh, basefile_str['B']))
 
-    filenames = {'U': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': ufiles}, #'depth': wfiles,
+    filenames = {'U': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': ufiles},
                  'V': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': vfiles},
                  'W': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': wfiles},
                  'd_phy': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': pfiles},
                  'nd_phy': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': pfiles},
-                 'euph_z': {'lon': mesh_mask, 'lat': mesh_mask, 'data': ppfiles},
+                 'euph_z': {'lon': mesh_mask, 'lat': mesh_mask, 'data': dfiles},
                  #'d_tpp': {'lon': mesh_mask, 'lat': mesh_mask, 'data': ppfiles}, # 'depth': wfiles,
                  #'nd_tpp': {'lon': mesh_mask, 'lat': mesh_mask, 'data': ppfiles},
-                 'tpp3': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': ppfiles},
-                 'cons_temperature': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': tsfiles},
-                 'abs_salinity': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': tsfiles}}
+                 'tpp3': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': dfiles},
+                 'cons_temperature': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': tfiles},
+                 'abs_salinity': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': wfiles[0], 'data': tfiles}}
 
     variables = {'U': 'uo',
                  'V': 'vo',
@@ -343,25 +439,48 @@ if __name__ == "__main__":
                   'cons_temperature': {'lon': 'glamf', 'lat': 'gphif', 'depth': 'depthw','time': 'time_counter'},
                   'abs_salinity': {'lon': 'glamf', 'lat': 'gphif', 'depth': 'depthw','time': 'time_counter'}}
 
-    chs = {'time_counter': 1, 'depthu': 75, 'depthv': 75, 'depthw': 75, 'deptht': 75, 'y': 200, 'x': 200}
-    nchs = {
-        'U':                {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('depthu', 25), 'time': ('time_counter', 1)},
-        'V':                {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('depthv', 25), 'time': ('time_counter', 1)},
-        'W':                {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('depthw', 25), 'time': ('time_counter', 1)},
-        'd_phy':            {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # pfiles
-        'nd_phy':           {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # pfiles
-        'euph_z':           {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # dfiles
-        # 'd_tpp':            {'lon': ('x', 96), 'lat': ('y', 48), 'time': ('time_counter', 1)},  # dfiles
-        # 'nd_tpp':           {'lon': ('x', 96), 'lat': ('y', 48), 'time': ('time_counter', 1)},  # dfiles
-        'tpp3':             {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # dfiles
-        'cons_temperature': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # tfiles
-        'abs_salinity':     {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # tfiles
-    }
+    chs = None
+    nchs = None
+    if args.chs > 1:
+        chs = {'time_counter': 1, 'depthu': 75, 'depthv': 75, 'depthw': 75, 'deptht': 75, 'y': 200, 'x': 200}
+        nchs = {
+            'U': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('depthu', 25), 'time': ('time_counter', 1)},
+            'V': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('depthv', 25), 'time': ('time_counter', 1)},
+            'W': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('depthw', 25), 'time': ('time_counter', 1)},
+            'd_phy': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # pfiles
+            'nd_phy': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # pfiles
+            'euph_z': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # dfiles
+            # 'd_tpp': {'lon': ('x', 96), 'lat': ('y', 48), 'time': ('time_counter', 1)},  # dfiles
+            # 'nd_tpp': {'lon': ('x', 96), 'lat': ('y', 48), 'time': ('time_counter', 1)},  # dfiles
+            'tpp3': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # dfiles
+            'cons_temperature': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # tfiles
+            'abs_salinity': {'lon': ('x', 96), 'lat': ('y', 48), 'depth': ('deptht', 25), 'time': ('time_counter', 1)},  # tfiles
+        }
+    elif args.chs > 0:
+        chs = 'auto'
+        nchs = {
+            'U': 'auto',
+            'V': 'auto',
+            'W': 'auto',
+            'd_phy': 'auto',  # pfiles
+            'nd_phy': 'auto',  # pfiles
+            'euph_z': 'auto',  # dfiles
+            # 'd_tpp': 'auto',  # dfiles
+            # 'nd_tpp': 'auto',  # dfiles
+            'tpp3': 'auto',  # dfiles
+            'cons_temperature': 'auto',  # tfiles
+            'abs_salinity': 'auto',  # tfiles
+        }
+    else:
+        chs = False
+        nchs = False
+    # dask.config.set({'array.chunk-size': '16MiB'})
     try:
-        fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, field_chunksize=chs, time_periodic=delta(days=365))
+        fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, field_chunksize=chs, time_periodic=delta(days=366))
     except (SyntaxError, ):
-        fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, chunksize=nchs, time_periodic=delta(days=365))
+        fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, chunksize=nchs, time_periodic=delta(days=366))
     depths = fieldset.U.depth
+    # ======== ======== End of FieldSet construction ======== ======== #
 
     outfile = 'Kooi+NEMO_3D_grid10by10_rho'+str(int(rho_pl))+'_r'+ r_pl+'_'+str(simdays)+'days_'+str(secsdt)+'dtsecs_'+str(hrsoutdt)+'hrsoutdt'
     dirwrite = os.path.join(odir, "rho_"+str(int(rho_pl))+"kgm-3")
@@ -392,34 +511,36 @@ if __name__ == "__main__":
     fieldset.add_field(SV, 'SV')
 
     """ Defining the particle set """
-    pset = ParticleSet_Benchmark.from_list(fieldset=fieldset,         # the fields on which the particles are advected
+    pset = ParticleSet.from_list(fieldset=fieldset,         # the fields on which the particles are advected
                                  pclass=plastic_particle,   # the type of particles (JITParticle or ScipyParticle)
                                  lon= lon_release, #-160.,  # a vector of release longitudes
                                  lat= lat_release, #36.,
                                  time = time0,
-                                 depth = z_release) #[1.]
+                                 depth = z_release,  #[1.]
+                                 idgen=idgen,
+                                 c_lib_register=c_lib_register)
 
-    # perflog = PerformanceLog()
-    # perflog.pset = pset
-    #postProcessFuncs = [perflog.advance,]
-
-    """ Kernal + Execution"""
-    postProcessFuncs = []
+    """ Kernel + Execution"""
+    postProcessFuncs = None
+    callbackdt = None
     if with_GC:
-        postProcessFuncs.append(perIterGC)
+        postProcessFuncs = [perIterGC, ]
+        callbackdt = delta(hours=hrsoutdt)
+
+    pfile = None
     output_fpath = None
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         output_fpath = os.path.join(dirwrite, outfile)
+        pfile = pset.ParticleFile(output_fpath, outputdt=delta(hours=hrsoutdt))
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(seawaterdensity.polyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
     kernels = pset.Kernel(AdvectionRK4_3D_vert) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
-    pfile= pset.ParticleFile(output_fpath, outputdt=delta(hours = hrsoutdt))
 
     starttime = 0
     endtime = 0
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_rank = mpi_comm.Get_rank()
-        if mpi_rank==0:
+        if mpi_rank == 0:
             # global_t_0 = ostime.time()
             # starttime = MPI.Wtime()
             starttime = ostime.process_time()
@@ -427,13 +548,12 @@ if __name__ == "__main__":
         #starttime = ostime.time()
         starttime = ostime.process_time()
 
-    # postIterationCallbacks = postProcessFuncs, callbackdt = delta(hours=hrsoutdt)
-    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds = secsdt), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=delta(hours = hrsoutdt))
+    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds = secsdt), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_rank = mpi_comm.Get_rank()
-        if mpi_rank==0:
+        if mpi_rank == 0:
             # global_t_0 = ostime.time()
             # endtime = MPI.Wtime()
             endtime = ostime.process_time()
@@ -441,36 +561,44 @@ if __name__ == "__main__":
         # endtime = ostime.time()
         endtime = ostime.process_time()
 
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         pfile.close()
 
-    size_Npart = len(pset.nparticle_log)
-    Npart = pset.nparticle_log.get_param(size_Npart-1)
-    if MPI:
-        mpi_comm = MPI.COMM_WORLD
-        mpi_comm.Barrier()
-        Npart = mpi_comm.reduce(Npart, op=MPI.SUM, root=0)
-        if mpi_comm.Get_rank() == 0:
-            if size_Npart>0:
+    if not args.dryrun:
+        size_Npart = len(pset.nparticle_log)
+        Npart = pset.nparticle_log.get_param(size_Npart-1)
+        if MPI:
+            mpi_comm = MPI.COMM_WORLD
+            mpi_comm.Barrier()
+            Npart = mpi_comm.reduce(Npart, op=MPI.SUM, root=0)
+            if mpi_comm.Get_rank() == 0:
+                if size_Npart>0:
+                    sys.stdout.write("final # particles: {}\n".format( Npart ))
+                sys.stdout.write("Time of pset.execute(): {} sec.\n".format(endtime-starttime))
+                avg_time = np.mean(np.array(pset.total_log.get_values(), dtype=np.float64))
+                sys.stdout.write("Avg. kernel update time: {} msec.\n".format(avg_time*1000.0))
+        else:
+            if size_Npart > 0:
                 sys.stdout.write("final # particles: {}\n".format( Npart ))
-            sys.stdout.write("Time of pset.execute(): {} sec.\n".format(endtime-starttime))
+            sys.stdout.write("Time of pset.execute(): {} sec.\n".format(endtime - starttime))
             avg_time = np.mean(np.array(pset.total_log.get_values(), dtype=np.float64))
-            sys.stdout.write("Avg. kernel update time: {} msec.\n".format(avg_time*1000.0))
-    else:
-        if size_Npart > 0:
-            sys.stdout.write("final # particles: {}\n".format( Npart ))
-        sys.stdout.write("Time of pset.execute(): {} sec.\n".format(endtime - starttime))
-        avg_time = np.mean(np.array(pset.total_log.get_values(), dtype=np.float64))
-        sys.stdout.write("Avg. kernel update time: {} msec.\n".format(avg_time * 1000.0))
+            sys.stdout.write("Avg. kernel update time: {} msec.\n".format(avg_time * 1000.0))
 
-    if MPI:
-        mpi_comm = MPI.COMM_WORLD
-        # mpi_comm.Barrier()
-        Nparticles = mpi_comm.reduce(np.array(pset.nparticle_log.get_params()), op=MPI.SUM, root=0)
-        Nmem = mpi_comm.reduce(np.array(pset.mem_log.get_params()), op=MPI.SUM, root=0)
-        if mpi_comm.Get_rank() == 0:
-            pset.plot_and_log(memory_used=Nmem, nparticles=Nparticles, target_N=1, imageFilePath=imageFileName, odir=odir)
-    else:
-        pset.plot_and_log(target_N=1, imageFilePath=imageFileName, odir=odir)
+        if MPI:
+            mpi_comm = MPI.COMM_WORLD
+            Nparticles = mpi_comm.reduce(np.array(pset.nparticle_log.get_params()), op=MPI.SUM, root=0)
+            Nmem = mpi_comm.reduce(np.array(pset.mem_log.get_params()), op=MPI.SUM, root=0)
+            if mpi_comm.Get_rank() == 0:
+                pset.plot_and_log(memory_used=Nmem, nparticles=Nparticles, target_N=1, imageFilePath=imageFileName, odir=odir)
+        else:
+            pset.plot_and_log(target_N=1, imageFilePath=imageFileName, odir=odir)
+
+    del pset
+    if idgen is not None:
+        idgen.close()
+        del idgen
+    if c_lib_register is not None:
+        c_lib_register.clear()
+        del c_lib_register
 
     print('Execution finished')

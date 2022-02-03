@@ -6,18 +6,18 @@ from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC 
 from datetime import timedelta as delta
 from glob import glob
 import numpy as np
-import itertools
-import matplotlib.pyplot as plt
+# import itertools
+# import matplotlib.pyplot as plt
 import xarray as xr
 import warnings
 import math
 import sys
 import os
 import gc
-from  argparse import ArgumentParser
+from argparse import ArgumentParser
 import fnmatch
 import time as ostime
-#import dask
+# import dask
 warnings.simplefilter("ignore", category=xr.SerializationWarning)
 
 try:
@@ -158,11 +158,11 @@ if __name__=='__main__':
     if args.dryrun:
         ParticleSet = pset_types_dry[pset_type]['pset']
 
-    wstokes = args.stokes
     imageFileName=args.imageFileName
-    periodicFlag=args.periodic
     time_in_days = int(float(eval(args.time_in_days)))
     with_GC = args.useGC
+    wstokes = args.stokes
+    periodicFlag=args.periodic
 
     # ======================================================= #
     # new ID generator things
@@ -281,7 +281,7 @@ if __name__=='__main__':
 
     output_fpath = None
     outfile = None
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         output_fpath = fname
         outfile = pset.ParticleFile(name=output_fpath, outputdt=delta(days=1))
     kernel = pset.Kernel(AdvectionRK4)+pset.Kernel(Age)+pset.Kernel(periodicBC)
@@ -312,7 +312,7 @@ if __name__=='__main__':
         # endtime = ostime.time()
         endtime = ostime.process_time()
 
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         outfile.close()
 
     if not args.dryrun:

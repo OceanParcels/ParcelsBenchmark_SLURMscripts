@@ -478,7 +478,7 @@ if __name__ == "__main__":
         callbackdt = delta(days=30)
     output_fpath = None
     pfile = None
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         output_fpath = os.path.join(dirwrite, outfile)
         pfile = pset.ParticleFile(output_fpath, convert_at_end=True, write_ondelete=True)
     kernels = pset.Kernel(initials) + Sink + Age + pset.Kernel(AdvectionRK4_3D) + Age
