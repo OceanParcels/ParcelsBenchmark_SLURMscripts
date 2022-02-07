@@ -252,7 +252,7 @@ if __name__ == "__main__":
     parser.add_argument("-dd", "--dwelling_depth", dest="dd", type=float, default=10.0, help="set the dwelling depth (i.e. ocean surface depth) in [m] (default: 10.0)")
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
     # parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=int, default=365, help="runtime in days (default: 365)")
-    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*365", help="runtime in days (default: 1*365)")
+    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*366", help="runtime in days (default: 1*366)")
     parser.add_argument("-G", "--GC", dest="useGC", action='store_true', default=False, help="using a garbage collector (default: false)")
     parser.add_argument("-pr", "--profiling", dest="profiling", action='store_true', default=False, help="tells that the profiling of the script is activates")
     parser.add_argument("-tp", "--type", dest="pset_type", default="SoA", help="particle set type = [SOA, AOS, Nodes]")
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     imageFileName=args.imageFileName
     periodicFlag=args.periodic
     time_in_days = int(float(eval(args.time_in_days)))
-    time_in_years = int(time_in_days/366.0)
+    time_in_years = int(float(time_in_days)/365.0)
     with_GC = args.useGC
 
     # ======================================================= #
@@ -410,8 +410,8 @@ if __name__ == "__main__":
     if args.write_out:
         pfname += '_w'
     if time_in_years != 1:
-        outfile += '_' + str(time_in_years) + 'y'
-        pfname += '_' + str(time_in_years) + 'y'
+        outfile += '_%dy' % (str(time_in_years))
+        pfname += '_%dy' % (str(time_in_years))
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_size = mpi_comm.Get_size()
@@ -428,7 +428,7 @@ if __name__ == "__main__":
         pfname += '_woGC'
     outfile += '_chs%d' % (args.chs)
     pfname += '_chs%d' % (args.chs)
-    imageFileName = pfname + os.path.extsep + pfext
+    imageFileName = pfname + pfext
     dirwrite = os.path.join(odir, "sp%d_dd%d" % (int(sp),int(dd)))
     if not os.path.exists(dirwrite):
         os.mkdir(dirwrite)

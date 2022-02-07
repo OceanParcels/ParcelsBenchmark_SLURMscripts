@@ -148,11 +148,11 @@ def periodicBC(particle, fieldSet, time):
 if __name__=='__main__':
     parser = ArgumentParser(description="Example of particle advection around an idealised peninsula")
     parser.add_argument("-s", "--stokes", dest="stokes", action='store_true', default=False, help="use Stokes' field data")
-    parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="mpiChunking_plot_MPI.png", help="image file name of the plot")
+    parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="benchmark_galapagos.png", help="image file name of the plot")
     parser.add_argument("-p", "--periodic", dest="periodic", action='store_true', default=False, help="enable/disable periodic wrapping (else: extrapolation)")
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
     # parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=int, default=365, help="runtime in days (default: 365)")
-    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*365", help="runtime in days (default: 1*365)")
+    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*366", help="runtime in days (default: 1*365)")
     parser.add_argument("-tp", "--type", dest="pset_type", default="soa", help="particle set type = [SOA, AOS, Nodes]")
     parser.add_argument("-G", "--GC", dest="useGC", action='store_true', default=False, help="using a garbage collector (default: false)")
     parser.add_argument("-chs", "--chunksize", dest="chs", type=int, default=0, help="defines the chunksize level: 0=None, 1='auto', 2=fine tuned; default: 0")
@@ -167,6 +167,7 @@ if __name__=='__main__':
 
     imageFileName=args.imageFileName
     time_in_days = int(float(eval(args.time_in_days)))
+    time_in_years = int(float(time_in_days)/365.0)
     with_GC = args.useGC
     wstokes = args.stokes
     periodicFlag=args.periodic
@@ -197,7 +198,7 @@ if __name__=='__main__':
     period = None
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
         headdir = "/scratch/{}/experiments/galapagos".format("ckehl")
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
@@ -212,7 +213,7 @@ if __name__=='__main__':
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
         headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/galapagos".format(CARTESIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
         dirread_stokes = os.path.join(datahead, 'CMEMS', 'GLOBAL_ANALYSIS_FORECAST_PHY_001_024_SMOC')
@@ -227,7 +228,7 @@ if __name__=='__main__':
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch/shared/{}/experiments/galapagos".format(CARTESIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
@@ -242,7 +243,7 @@ if __name__=='__main__':
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch-shared/{}/experiments/galapagos".format(SNELLIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
@@ -256,7 +257,7 @@ if __name__=='__main__':
         computer_env = "Snellius"
     else:
         headdir = "/var/scratch/galapagos"
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
         dirread_stokes = None
@@ -282,12 +283,52 @@ if __name__=='__main__':
     meshfile = glob(os.path.join(dirread_top, 'domain', 'coordinates.nc'))
     dirread_hydro = os.path.join(dirread_top, 'means')
     fieldset, fU = create_galapagos_fieldset(dirread_hydro, basefile_str, dirread_stokes, stokes_variables, stokesfile_str, meshfile, True, period, chunk_level=args.chs, use_stokes=wstokes)
-    fname = os.path.join(odir,"galapagosparticles_bwd_wstokes_v2.nc") if wstokes else os.path.join(odir,"galapagosparticles_bwd_v2.nc")
+
+    # ======== ======== End of FieldSet construction ======== ======== #
+    if os.path.sep in imageFileName:
+        head_dir = os.path.dirname(imageFileName)
+        if head_dir[0] == os.path.sep:
+            odir = head_dir
+        else:
+            odir = os.path.join(odir, head_dir)
+            imageFileName = os.path.split(imageFileName)[1]
+    pfname, pfext = os.path.splitext(imageFileName)
+
+    # fname = os.path.join(odir,"galapagosparticles_bwd_wstokes_v2.nc") if wstokes else os.path.join(odir,"galapagosparticles_bwd_v2.nc")
+    outfile = "galapagosparticles_bwd_wstokes_v2.nc" if wstokes else "galapagosparticles_bwd_v2.nc"
+    if periodicFlag:
+        outfile += '_p'
+        pfname += '_p'
+    if args.write_out:
+        pfname += '_w'
+    if time_in_years != 1:
+        outfile += '_%dy' % (str(time_in_years))
+        pfname += '_%dy' % (str(time_in_years))
+    if MPI:
+        mpi_comm = MPI.COMM_WORLD
+        mpi_size = mpi_comm.Get_size()
+        outfile += '_n' + str(mpi_size)
+        pfname += '_n' + str(mpi_size)
+    if args.profiling:
+        outfile += '_prof'
+        pfname += 'prof'
+    if with_GC:
+        outfile += '_wGC'
+        pfname += '_wGC'
+    else:
+        outfile += '_woGC'
+        pfname += '_woGC'
+    outfile += '_chs%d' % (args.chs)
+    pfname += '_chs%d' % (args.chs)
+    imageFileName = pfname + pfext
+
+    dirwrite = odir
+    if not os.path.exists(dirwrite):
+        os.mkdir(dirwrite)
 
     galapagos_extent = [-91.8, -89, -1.4, 0.7]
     startlon, startlat = np.meshgrid(np.arange(galapagos_extent[0], galapagos_extent[1], 0.2),
                                      np.arange(galapagos_extent[2], galapagos_extent[3], 0.2))
-
     print("|lon| = {}; |lat| = {}".format(startlon.shape[0], startlat.shape[0]))
 
     pset = ParticleSet(fieldset=fieldset, pclass=GalapagosParticle, lon=startlon, lat=startlat, time=fU.grid.time[-1], repeatdt=delta(days=7), idgen=idgen, c_lib_register=c_lib_register)
@@ -299,10 +340,11 @@ if __name__=='__main__':
         callbackdt = delta(hours=12)
 
     output_fpath = None
-    outfile = None
+    pfile = None
     if args.write_out and not args.dryrun:
-        output_fpath = fname
-        outfile = pset.ParticleFile(name=output_fpath, outputdt=delta(days=1))
+        # output_fpath = fname
+        output_fpath = os.path.join(dirwrite, outfile)
+        pfile = pset.ParticleFile(name=output_fpath, outputdt=delta(days=1))
     kernel = pset.Kernel(AdvectionRK4)+pset.Kernel(Age)+pset.Kernel(periodicBC)
 
     starttime = 0
@@ -318,7 +360,7 @@ if __name__=='__main__':
         #starttime = ostime.time()
         starttime = ostime.process_time()
 
-    pset.execute(kernel, dt=delta(hours=-1), output_file=outfile, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    pset.execute(kernel, dt=delta(hours=-1), output_file=pfile, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
@@ -332,7 +374,7 @@ if __name__=='__main__':
         endtime = ostime.process_time()
 
     if args.write_out and not args.dryrun:
-        outfile.close()
+        pfile.close()
 
     if not args.dryrun:
         size_Npart = len(pset.nparticle_log)

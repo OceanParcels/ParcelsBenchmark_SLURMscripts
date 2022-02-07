@@ -238,11 +238,11 @@ def Profiles(particle, fieldset, time):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Example of particle advection using in-memory stommel test case")
-    parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="mpiChunking_plot_MPI.png", help="image file name of the plot")
+    parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="benchmark_deep_migration.png", help="image file name of the plot")
     parser.add_argument("-p", "--periodic", dest="periodic", action='store_true', default=False, help="enable/disable periodic wrapping (else: extrapolation)")
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
     # parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=int, default=365, help="runtime in days (default: 365)")
-    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*365", help="runtime in days (default: 1*365)")
+    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*366", help="runtime in days (default: 1*365)")
     parser.add_argument("-tp", "--type", dest="pset_type", default="soa", help="particle set type = [SOA, AOS, Nodes]")
     parser.add_argument("-G", "--GC", dest="useGC", action='store_true', default=False, help="using a garbage collector (default: false)")
     parser.add_argument("-chs", "--chunksize", dest="chs", type=int, default=0, help="defines the chunksize level: 0=None, 1='auto', 2=fine tuned; default: 0")
@@ -258,6 +258,7 @@ if __name__ == "__main__":
     imageFileName=args.imageFileName
     periodicFlag=args.periodic
     time_in_days = int(float(eval(args.time_in_days)))
+    time_in_years = int(float(time_in_days)/365.0)
     with_GC = args.useGC
 
     # ======================================================= #
@@ -284,7 +285,7 @@ if __name__ == "__main__":
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
         # headdir = "/scratch/{}/experiments/deep_migration_behaviour".format(os.environ['USER'])
         headdir = "/scratch/{}/experiments/deep_migration_behaviour".format("ckehl")
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
         dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -302,7 +303,7 @@ if __name__ == "__main__":
     elif os.uname()[1] in ["lorenz.science.uu.nl", ] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
         headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/deep_migration_behaviour".format(CARTESIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/storage/shared/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
         dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -320,7 +321,7 @@ if __name__ == "__main__":
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch/shared/{}/experiments/deep_migration_behaviour".format(CARTESIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
         dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -338,7 +339,7 @@ if __name__ == "__main__":
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch-shared/{}/experiments/deep_migration_behaviour".format(SNELLIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
         dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -355,7 +356,7 @@ if __name__ == "__main__":
         computer_env = "Snellius"
     else:
         headdir = "/var/scratch/dlobelle"
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
         dirread_top_bgc = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -481,8 +482,42 @@ if __name__ == "__main__":
         fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, chunksize=nchs, time_periodic=delta(days=366))
     depths = fieldset.U.depth
     # ======== ======== End of FieldSet construction ======== ======== #
+    if os.path.sep in imageFileName:
+        head_dir = os.path.dirname(imageFileName)
+        if head_dir[0] == os.path.sep:
+            odir = head_dir
+        else:
+            odir = os.path.join(odir, head_dir)
+            imageFileName = os.path.split(imageFileName)[1]
+    pfname, pfext = os.path.splitext(imageFileName)
 
     outfile = 'Kooi+NEMO_3D_grid10by10_rho'+str(int(rho_pl))+'_r'+ r_pl+'_'+str(simdays)+'days_'+str(secsdt)+'dtsecs_'+str(hrsoutdt)+'hrsoutdt'
+    if periodicFlag:
+        outfile += '_p'
+        pfname += '_p'
+    if args.write_out:
+        pfname += '_w'
+    if time_in_years != 1:
+        outfile += '_%dy' % (str(time_in_years))
+        pfname += '_%dy' % (str(time_in_years))
+    if MPI:
+        mpi_comm = MPI.COMM_WORLD
+        mpi_size = mpi_comm.Get_size()
+        outfile += '_n' + str(mpi_size)
+        pfname += '_n' + str(mpi_size)
+    if args.profiling:
+        outfile += '_prof'
+        pfname += 'prof'
+    if with_GC:
+        outfile += '_wGC'
+        pfname += '_wGC'
+    else:
+        outfile += '_woGC'
+        pfname += '_woGC'
+    outfile += '_chs%d' % (args.chs)
+    pfname += '_chs%d' % (args.chs)
+    imageFileName = pfname + pfext
+
     dirwrite = os.path.join(odir, "rho_"+str(int(rho_pl))+"kgm-3")
     if not os.path.exists(dirwrite):
         os.mkdir(dirwrite)
