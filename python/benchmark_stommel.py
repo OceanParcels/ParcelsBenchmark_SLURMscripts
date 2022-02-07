@@ -465,7 +465,11 @@ if __name__=='__main__':
     delete_func = RenewParticle
     if args.delete_particle:
         delete_func=DeleteParticle
-    postProcessFuncs = []
+    postProcessFuncs = None
+    callbackdt = None
+    if with_GC:
+        postProcessFuncs = [perIterGC, ]
+        callbackdt = delta(hours=12)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
@@ -481,8 +485,6 @@ if __name__=='__main__':
     if agingParticles:
         kernels += pset.Kernel(initialize, delete_cfiles=True)
         kernels += pset.Kernel(Age, delete_cfiles=True)
-    if with_GC:
-        postProcessFuncs.append(perIterGC)
     if backwardSimulation:
         # ==== backward simulation ==== #
         if args.animate:

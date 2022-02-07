@@ -340,7 +340,7 @@ if __name__=='__main__':
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_rank = mpi_comm.Get_rank()
-        if mpi_rank==0:
+        if mpi_rank == 0:
             global_t_0 = ostime.process_time()
     else:
         global_t_0 = ostime.process_time()
@@ -434,7 +434,7 @@ if __name__=='__main__':
 
     output_file = None
     out_fname = "benchmark_bickleyjet"
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         if MPI and (MPI.COMM_WORLD.Get_size()>1):
             out_fname += "_MPI"
         else:
@@ -454,7 +454,11 @@ if __name__=='__main__':
     delete_func = RenewParticle
     if args.delete_particle:
         delete_func=DeleteParticle
-    postProcessFuncs = []
+    postProcessFuncs = None
+    callbackdt = None
+    if with_GC:
+        postProcessFuncs = [perIterGC, ]
+        callbackdt = delta(hours=12)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
@@ -467,14 +471,12 @@ if __name__=='__main__':
     if agingParticles:
         kernels += pset.Kernel(initialize, delete_cfiles=True)
         kernels += pset.Kernel(Age, delete_cfiles=True)
-    if with_GC:
-        postProcessFuncs.append(perIterGC)
     if backwardSimulation:
         # ==== backward simulation ==== #
         if args.animate:
-            pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(minutes=-dt_minutes), output_file=output_file, recovery={ErrorCode.ErrorOutOfBounds: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=delta(hours=12), moviedt=delta(hours=6), movie_background_field=fieldset.U)
+            pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(minutes=-dt_minutes), output_file=output_file, recovery={ErrorCode.ErrorOutOfBounds: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt, moviedt=delta(hours=6), movie_background_field=fieldset.U)
         else:
-            pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(minutes=-dt_minutes), output_file=output_file, recovery={ErrorCode.ErrorOutOfBounds: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=delta(hours=12))
+            pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(minutes=-dt_minutes), output_file=output_file, recovery={ErrorCode.ErrorOutOfBounds: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
     else:
         # ==== forward simulation ==== #
         if args.animate:
@@ -490,7 +492,7 @@ if __name__=='__main__':
     else:
         endtime = ostime.process_time()
 
-    if args.write_out:
+    if args.write_out and not args.dryrun:
         output_file.close()
 
     if not args.dryrun:
@@ -501,7 +503,7 @@ if __name__=='__main__':
             Npart = pset.nparticle_log.get_param(size_Npart-1)
             Npart = mpi_comm.reduce(Npart, op=MPI.SUM, root=0)
             if mpi_comm.Get_rank() == 0:
-                if size_Npart>0:
+                if size_Npart > 0:
                     sys.stdout.write("final # particles: {}\n".format( Npart ))
                 sys.stdout.write("Time of pset.execute(): {} sec.\n".format(endtime-starttime))
                 avg_time = np.mean(np.array(pset.total_log.get_values(), dtype=np.float64))
@@ -531,5 +533,3 @@ if __name__=='__main__':
     if c_lib_register is not None:
         c_lib_register.clear()
         del c_lib_register
-
-

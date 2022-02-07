@@ -1,5 +1,5 @@
-from parcels import JITParticle, ScipyParticle, AdvectionRK4_3D, AdvectionRK4, ParticleFile, Variable, StateCode, OperationCode, ErrorCode
-from parcels import FieldSet, Field, NestedField, VectorField
+from parcels import JITParticle, ScipyParticle, Variable, StateCode, OperationCode, ErrorCode  # noqa
+from parcels import FieldSet, Field
 from parcels import BenchmarkParticleSetSOA, BenchmarkParticleSetAOS, BenchmarkParticleSetNodes
 from parcels import ParticleSetSOA, ParticleSetAOS, ParticleSetNodes
 from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC  # noqa

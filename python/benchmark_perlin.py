@@ -551,11 +551,15 @@ if __name__=='__main__':
             out_fname += "_add"
         if agingParticles:
             out_fname += "_age"
-        output_file = pset.ParticleFile(name=os.path.join(odir,out_fname+".nc"), outputdt=delta(hours=24))
+        output_file = pset.ParticleFile(name=os.path.join(odir, out_fname+".nc"), outputdt=delta(hours=24))
     delete_func = RenewParticle
     if args.delete_particle:
         delete_func = DeleteParticle
-    postProcessFuncs = []
+    postProcessFuncs = None
+    callbackdt = None
+    if with_GC:
+        postProcessFuncs = [perIterGC, ]
+        callbackdt = delta(hours=12)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
@@ -568,8 +572,6 @@ if __name__=='__main__':
     if agingParticles:
         kernels += pset.Kernel(initialize, delete_cfiles=True)
         kernels += pset.Kernel(Age, delete_cfiles=True)
-    if with_GC:
-        postProcessFuncs.append(perIterGC)
     if backwardSimulation:
         # ==== backward simulation ==== #
         if args.animate:
