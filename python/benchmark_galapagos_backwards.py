@@ -36,7 +36,7 @@ pset_types = {'soa': {'pset': BenchmarkParticleSetSOA},
               'nodes': {'pset': BenchmarkParticleSetNodes}}
 
 
-def create_galapagos_fieldset(datahead, stokeshead, basefile_str, meshfile, periodic_wrap, period, chunk_level=0, use_stokes=False):
+def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variables, stokesfile_str, meshfile, periodic_wrap, period, chunk_level=0, use_stokes=False):
     files = None
     if type(basefile_str) == dict:
         files = {'U': sorted(glob(os.path.join(datahead, basefile_str['U']))),
@@ -79,8 +79,14 @@ def create_galapagos_fieldset(datahead, stokeshead, basefile_str, meshfile, peri
         fieldset_nemo = FieldSet.from_nemo(nemo_files, nemo_variables, nemo_dimensions, chunksize=nemo_nchs, time_periodic=period, allow_time_extrapolation=extrapolation)
 
     if use_stokes:
-        stokes_files = sorted(glob(os.path.join(stokeshead, "WW3-*_20[00-10]??_uss.nc")))
-        stokes_variables = {'U': 'uuss', 'V': 'vuss'}
+        stokes_files = None
+        if type(stokesfile_str) == dict:
+            stokes_files = {'U': sorted(glob(os.path.join(stokeshead, stokesfile_str['U']))),
+                            'V': sorted(glob(os.path.join(stokeshead, stokesfile_str['V'])))}
+        else:
+            stokes_files = sorted(glob(os.path.join(stokeshead, stokesfile_str)))
+        # stokes_files = sorted(glob(os.path.join(stokeshead, "WW3-*_20[00-10]??_uss.nc")))
+        # stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokes_dimensions = {'lat': 'latitude', 'lon': 'longitude', 'time': 'time'}
         stokes_chs = {'time': 1, 'latitude': 16, 'longitude': 32}
         stokes_nchs = {
@@ -88,7 +94,8 @@ def create_galapagos_fieldset(datahead, stokeshead, basefile_str, meshfile, peri
             'V': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)}
         }
         # stokes_period = delta(days=366+2*31) if periodic_wrap else False  # 14 month period
-        stokes_period = delta(days=366*11) if periodic_wrap else False  # 10 years period
+        # stokes_period = delta(days=366*11) if periodic_wrap else False  # 10 years period
+        stokes_period = period if periodic_wrap else False  # 10 years period
         fieldset_stokes = None
         try:
             fieldset_stokes = FieldSet.from_netcdf(stokes_files, stokes_variables, stokes_dimensions, field_chunksize=stokes_chs, time_periodic=stokes_period, allow_time_extrapolation=extrapolation)
@@ -185,6 +192,8 @@ if __name__=='__main__':
     dirread_stokes = ""
     # dirread_mesh = ""
     basefile_str = None
+    stokesfile_str = None
+    stokes_variables = None
     period = None
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
         headdir = "/scratch/{}/experiments/galapagos".format("ckehl")
@@ -197,6 +206,8 @@ if __name__=='__main__':
             'U': 'ORCA0083-N06_20[00-10]????d05U.nc',
             'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
         }
+        stokes_variables = {'U': 'uuss', 'V': 'vuss'}
+        stokesfile_str = "WW3-*_2010??_uss.nc"
         period = delta(days=366*11)  # 10 years period
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
@@ -204,11 +215,13 @@ if __name__=='__main__':
         odir = os.path.join(headdir, "BENCHres")
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
-        dirread_stokes = None
+        dirread_stokes = os.path.join(datahead, 'CMEMS', 'GLOBAL_ANALYSIS_FORECAST_PHY_001_024_SMOC')
         basefile_str = {
             'U': 'ORCA0083-N06_2004????d05U.nc',
             'V': 'ORCA0083-N06_2004????d05V.nc'
         }
+        stokes_variables = {'U': 'vsdx', 'V': 'vsdy'}
+        stokesfile_str = "SMOC_2019*.nc"
         period = delta(days=366)  # 1 years period
         computer_env = "Lorenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
@@ -222,6 +235,8 @@ if __name__=='__main__':
             'U': 'ORCA0083-N06_20[00-10]????d05U.nc',
             'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
         }
+        stokes_variables = {'U': 'uuss', 'V': 'vuss'}
+        stokesfile_str = "WW3-*_2010??_uss.nc"
         period = delta(days=366*11)  # 10 years period
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
@@ -235,6 +250,8 @@ if __name__=='__main__':
             'U': 'ORCA0083-N06_20[00-10]????d05U.nc',
             'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
         }
+        stokes_variables = {'U': 'uuss', 'V': 'vuss'}
+        stokesfile_str = "WW3-*_2010??_uss.nc"
         period = delta(days=366*11)  # 10 years period
         computer_env = "Snellius"
     else:
@@ -247,6 +264,8 @@ if __name__=='__main__':
             'U': 'ORCA0083-N06_2000????d05U.nc',
             'V': 'ORCA0083-N06_2000????d05V.nc'
         }
+        stokes_variables = {'U': 'uuss', 'V': 'vuss'}
+        stokesfile_str = "WW3-*_2010??_uss.nc"
         period = delta(days=366)  # 1 years period
 
     print("running {} on {} (uname: {}) - branch '{}' - argv: {}".format(scenario, computer_env, os.uname()[1], branch, sys.argv[1:]))
@@ -257,12 +276,12 @@ if __name__=='__main__':
     # ufiles = sorted(glob(ddir+'means/ORCA0083-N06_20[00-10]*d05U.nc'))
     # vfiles = [u.replace('05U.nc', '05V.nc') for u in ufiles]
     # meshfile = glob(ddir+'domain/coordinates.nc')
-    # create_galapagos_fieldset(datahead, stokeshead, basefile_str, meshfile, periodic_wrap, period, chunk_level, use_stokes)
+    # create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variables, stokesfile_str, meshfile, periodic_wrap, period, chunk_level, use_stokes)
 
     wstokes &= True if dirread_stokes is not None else False
     meshfile = glob(os.path.join(dirread_top, 'domain', 'coordinates.nc'))
     dirread_hydro = os.path.join(dirread_top, 'means')
-    fieldset, fU = create_galapagos_fieldset(dirread_hydro, dirread_stokes, basefile_str, True, period, chunk_level=args.chs, use_stokes=wstokes)
+    fieldset, fU = create_galapagos_fieldset(dirread_hydro, basefile_str, dirread_stokes, stokes_variables, stokesfile_str, meshfile, True, period, chunk_level=args.chs, use_stokes=wstokes)
     fname = os.path.join(odir,"galapagosparticles_bwd_wstokes_v2.nc") if wstokes else os.path.join(odir,"galapagosparticles_bwd_v2.nc")
 
     galapagos_extent = [-91.8, -89, -1.4, 0.7]
