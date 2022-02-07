@@ -6,7 +6,7 @@ Created on Fri Oct 13 15:31:22 2017
 """
 import itertools
 
-from parcels import (FieldSet, JITParticle, AdvectionRK4_3D, Field, Variable, StateCode, OperationCode, ErrorCode)
+from parcels import FieldSet, JITParticle, AdvectionRK4_3D, Field, Variable, StateCode, OperationCode, ErrorCode
 from parcels import BenchmarkParticleSetSOA, BenchmarkParticleSetAOS, BenchmarkParticleSetNodes
 from parcels import ParticleSetSOA, ParticleSetAOS, ParticleSetNodes
 from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC  # noqa
@@ -246,7 +246,7 @@ class DinoParticle(JITParticle):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Example of particle advection for the palaeo-plankton case")
-    parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="mpiChunking_plot_MPI.png", help="image file name of the plot")
+    parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="benchmark_palaeo.png", help="image file name of the plot")
     parser.add_argument("-p", "--periodic", dest="periodic", action='store_true', default=False, help="enable/disable periodic wrapping (else: extrapolation)")
     parser.add_argument("-sp", "--sinking_speed", dest="sp", type=float, default=11.0, help="set the simulation sinking speed in [m/day] (default: 11.0)")
     parser.add_argument("-dd", "--dwelling_depth", dest="dd", type=float, default=10.0, help="set the dwelling depth (i.e. ocean surface depth) in [m] (default: 10.0)")
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
         # headdir = "/scratch/{}/experiments/palaeo-parcels".format(os.environ['USER'])
         headdir = "/scratch/{}/experiments/palaeo-parcels".format("ckehl")
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         dirread_pal = os.path.join(headdir, 'NEMOdata')
         datahead = "/data/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/')
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     elif os.uname()[1] in ["lorenz.science.uu.nl", ] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
         headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/palaeo-parcels".format(CARTESIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         dirread_pal = os.path.join(headdir, 'NEMOdata')
         datahead = "/storage/shared/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/')
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch/shared/{}/experiments/palaeo-parcels".format(CARTESIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         dirread_pal = os.path.join(headdir, 'NEMOdata')
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/')
@@ -355,7 +355,7 @@ if __name__ == "__main__":
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
         headdir = "/scratch-shared/{}/experiments/palaeo-parcels".format(SNELLIUS_SCRATCH_USERNAME)
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         dirread_pal = os.path.join(headdir, 'NEMOdata')
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/')
@@ -373,7 +373,7 @@ if __name__ == "__main__":
         computer_env = "Snellius"
     else:
         headdir = "/var/scratch/nooteboom"
-        odir = os.path.join(headdir, "BENCHres")
+        odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         dirread_pal = headdir
         datahead = "/data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA/ORCA0083-N006/')
@@ -392,22 +392,43 @@ if __name__ == "__main__":
     # print("running {} on {} (uname: {}) - branch '{}' - headdir: {}; odir: {} - argv: {}".format(scenario, computer_env, os.uname()[1], branch, headdir, odir, sys.argv[1:]))
     # dirread_pal = '/projects/0/palaeo-parcels/NEMOdata/'
 
+    if os.path.sep in imageFileName:
+        head_dir = os.path.dirname(imageFileName)
+        if head_dir[0] == os.path.sep:
+            odir = head_dir
+        else:
+            odir = os.path.join(odir, head_dir)
+            imageFileName = os.path.split(imageFileName)[1]
+    pfname, pfext = os.path.splitext(imageFileName)
+
+
     outfile = 'grid_dd' + str(int(dd))
     outfile += '_sp' + str(int(sp))
     if periodicFlag:
         outfile += '_p'
+        pfname += '_p'
+    if args.write_out:
+        pfname += '_w'
     if time_in_years != 1:
         outfile += '_' + str(time_in_years) + 'y'
+        pfname += '_' + str(time_in_years) + 'y'
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_size = mpi_comm.Get_size()
         outfile += '_n' + str(mpi_size)
+        pfname += '_n' + str(mpi_size)
     if args.profiling:
         outfile += '_prof'
+        pfname += 'prof'
     if with_GC:
         outfile += '_wGC'
+        pfname += '_wGC'
     else:
         outfile += '_woGC'
+        pfname += '_woGC'
+    outfile += '_chs%d' % (args.chs)
+    pfname += '_chs%d' % (args.chs)
+    imageFileName = pfname + os.path.extsep + pfext
     dirwrite = os.path.join(odir, "sp%d_dd%d" % (int(sp),int(dd)))
     if not os.path.exists(dirwrite):
         os.mkdir(dirwrite)
