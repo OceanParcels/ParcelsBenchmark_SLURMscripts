@@ -256,10 +256,10 @@ if __name__ == "__main__":
         ParticleSet = pset_types_dry[pset_type]['pset']
 
     imageFileName=args.imageFileName
-    periodicFlag=args.periodic
     time_in_days = int(float(eval(args.time_in_days)))
     time_in_years = int(float(time_in_days)/365.0)
     with_GC = args.useGC
+    periodicFlag=args.periodic
 
     # ======================================================= #
     # new ID generator things
@@ -498,8 +498,8 @@ if __name__ == "__main__":
     if args.write_out:
         pfname += '_w'
     if time_in_years != 1:
-        outfile += '_%dy' % (str(time_in_years))
-        pfname += '_%dy' % (str(time_in_years))
+        outfile += '_%dy' % (time_in_years, )
+        pfname += '_%dy' % (time_in_years, )
     if MPI:
         mpi_comm = MPI.COMM_WORLD
         mpi_size = mpi_comm.Get_size()
