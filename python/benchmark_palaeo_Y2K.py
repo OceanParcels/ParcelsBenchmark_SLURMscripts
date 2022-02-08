@@ -520,7 +520,10 @@ if __name__ == "__main__":
     # pset.execute(kernels, runtime=delta(days=365*9), dt=delta(minutes=-20), output_file=pfile, verbose_progress=False,
     # recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs)
     # postIterationCallbacks=postProcessFuncs, callbackdt=delta(hours=12)
-    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(hours=-12), output_file=pfile, verbose_progress=False, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    # pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(hours=-12), output_file=pfile, verbose_progress=False, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(hours=-12), output_file=pfile,
+                 recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle},
+                 postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
     
     if MPI:
         mpi_comm = MPI.COMM_WORLD
