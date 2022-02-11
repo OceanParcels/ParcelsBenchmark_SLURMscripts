@@ -663,22 +663,22 @@ if __name__=='__main__':
     scenario = "perlin"
     odir = ""
     if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
-        odir = "/scratch/{}/experiments/parcels_benchmarking".format("ckehl")
+        odir = "/scratch/{}/experiments/parcels_benchmarking/{}".format("ckehl", str(args.pset_type))
         computer_env = "Gemini"
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
-        odir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/parcels_benchmarking".format(CARTESIUS_SCRATCH_USERNAME)
+        odir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/parcels_benchmarking/{}".format(CARTESIUS_SCRATCH_USERNAME, str(args.pset_type))
         computer_env = "Lorenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
-        odir = "/scratch/shared/{}/experiments/parcels_benchmarking".format(CARTESIUS_SCRATCH_USERNAME)
+        odir = "/scratch/shared/{}/experiments/parcels_benchmarking/{}".format(CARTESIUS_SCRATCH_USERNAME, str(args.pset_type))
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
-        odir = "/scratch-shared/{}/experiments/parcels_benchmarking".format(SNELLIUS_SCRATCH_USERNAME)
+        odir = "/scratch-shared/{}/experiments/parcels_benchmarking/{}".format(SNELLIUS_SCRATCH_USERNAME, str(args.pset_type))
         computer_env = "Snellius"
     else:
-        odir = "/var/scratch/experiments"
+        odir = "/var/scratch/experiments/{}".format(str(args.pset_type))
     print("running {} on {} (uname: {}) - branch '{}' - (target) N: {} - argv: {}".format(scenario, computer_env, os.uname()[1], branch, target_N, sys.argv[1:]))
 
     if os.path.sep in imageFileName:
