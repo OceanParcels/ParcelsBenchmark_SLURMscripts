@@ -296,6 +296,10 @@ if __name__=='__main__':
 
     # fname = os.path.join(odir,"galapagosparticles_bwd_wstokes_v2.nc") if wstokes else os.path.join(odir,"galapagosparticles_bwd_v2.nc")
     outfile = "galapagosparticles_bwd_wstokes_v2.nc" if wstokes else "galapagosparticles_bwd_v2.nc"
+    if MPI and (MPI.COMM_WORLD.Get_size()>1):
+        outfile += "_MPI" + "_n{}".format(MPI.COMM_WORLD.Get_size())
+    else:
+        outfile += "_noMPI"
     if periodicFlag:
         outfile += '_p'
         pfname += '_p'
