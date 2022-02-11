@@ -505,9 +505,6 @@ if __name__ == "__main__":
         mpi_size = mpi_comm.Get_size()
         outfile += '_n' + str(mpi_size)
         pfname += '_n' + str(mpi_size)
-    if args.profiling:
-        outfile += '_prof'
-        pfname += 'prof'
     if with_GC:
         outfile += '_wGC'
         pfname += '_wGC'
