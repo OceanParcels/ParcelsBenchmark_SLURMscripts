@@ -36,7 +36,8 @@ pset_types = {'soa': {'pset': BenchmarkParticleSetSOA},
               'nodes': {'pset': BenchmarkParticleSetNodes}}
 
 
-def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variables, stokesfile_str, meshfile, periodic_wrap, period, chunk_level=0, use_stokes=False):
+def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variables, stokesfile_str, meshfile,
+                              periodic_wrap, period, chunk_level=0, use_stokes=False):
     files = None
     if type(basefile_str) == dict:
         files = {'U': sorted(glob(os.path.join(datahead, basefile_str['U']))),
@@ -47,8 +48,8 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
     # ufiles = sorted(glob(ddir+'means/ORCA0083-N06_20[00-10]*d05U.nc'))
     # vfiles = [u.replace('05U.nc', '05V.nc') for u in ufiles]
     # meshfile = glob(ddir+'domain/coordinates.nc')
-    nemo_files = {'U': {'lon': meshfile, 'lat': meshfile, 'data': basefile_str['U'] if type(basefile_str) == dict else files},
-                  'V': {'lon': meshfile, 'lat': meshfile, 'data': basefile_str['U'] if type(basefile_str) == dict else files}}
+    nemo_files = {'U': {'lon': meshfile, 'lat': meshfile, 'data': files['U'] if type(basefile_str) == dict else files},
+                  'V': {'lon': meshfile, 'lat': meshfile, 'data': files['U'] if type(basefile_str) == dict else files}}
     nemo_variables = {'U': 'uo', 'V': 'vo'}
     nemo_dimensions = {'lon': 'glamf', 'lat': 'gphif', 'time': 'time_counter'}
     # period = delta(days=366*11) if periodic_wrap else False  # 10 years period
@@ -58,11 +59,18 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
     nemo_chs = None
     nemo_nchs = None
     if chunk_level > 1:
-        nemo_chs = {'time_counter': 1, 'depthu': 75, 'depthv': 75, 'depthw': 75, 'deptht': 75, 'y': 100, 'x': 100}
-        nemo_nchs = {
-            'U':       {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthu', 25), 'time': ('time_counter', 1)},  #
-            'V':       {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthv', 25), 'time': ('time_counter', 1)},  #
-        }
+        if (type(basefile_str) == dict and "ORCA" in basefile_str["U"]) or (type(basefile_str) == str and "ORCA" in basefile_str):
+            nemo_chs = {'time_counter': 1, 'depthu': 75, 'depthv': 75, 'depthw': 75, 'deptht': 75, 'y': 100, 'x': 100}
+            nemo_nchs = {
+                'U': {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthu', 25), 'time': ('time_counter', 1)},  #
+                'V': {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthv', 25), 'time': ('time_counter', 1)},  #
+            }
+        elif (type(basefile_str) == dict and "SMOC" in basefile_str["U"]) or (type(basefile_str) == str and "SMOC" in basefile_str):
+            nemo_chs = {'time': 1, 'depth': 75, 'latitude': 100, 'longitude': 100}
+            nemo_nchs = {
+                'U': {'lon': ('longitude', 128), 'lat': ('latitude', 96), 'depth': ('depth', 25), 'time': ('time', 1)},  #
+                'V': {'lon': ('longitude', 128), 'lat': ('latitude', 96), 'depth': ('depth', 25), 'time': ('time', 1)},  #
+            }
     elif chunk_level > 0:
         nemo_chs = 'auto'
         nemo_nchs = {
@@ -88,11 +96,27 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
         # stokes_files = sorted(glob(os.path.join(stokeshead, "WW3-*_20[00-10]??_uss.nc")))
         # stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokes_dimensions = {'lat': 'latitude', 'lon': 'longitude', 'time': 'time'}
-        stokes_chs = {'time': 1, 'latitude': 16, 'longitude': 32}
-        stokes_nchs = {
-            'U': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)},
-            'V': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)}
-        }
+        stokes_chs = None
+        stokes_nchs = None
+        if chunk_level > 1:
+            if (type(basefile_str) == dict and "ORCA" in basefile_str["U"]) or (type(basefile_str) == str and "ORCA" in basefile_str):
+                stokes_chs = {'time': 1, 'latitude': 16, 'longitude': 32}
+                stokes_nchs = {
+                    'U': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)},
+                    'V': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)}
+                }
+            elif (type(basefile_str) == dict and "SMOC" in basefile_str["U"]) or (type(basefile_str) == str and "SMOC" in basefile_str):
+                stokes_chs = nemo_chs
+                stokes_nchs = nemo_nchs
+        elif chunk_level > 0:
+            stokes_chs = 'auto'
+            stokes_nchs = {
+                'U': 'auto',
+                'V': 'auto'
+            }
+        else:
+            stokes_chs = False
+            stokes_nchs = False
         # stokes_period = delta(days=366+2*31) if periodic_wrap else False  # 14 month period
         # stokes_period = delta(days=366*11) if periodic_wrap else False  # 10 years period
         stokes_period = period if periodic_wrap else False  # 10 years period
@@ -105,11 +129,13 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
 
         fieldset = FieldSet(U=fieldset_nemo.U+fieldset_stokes.U, V=fieldset_nemo.V+fieldset_stokes.V)
         fU = fieldset.U[0]
+        fV = fieldset.V[0]
     else:
         fieldset = fieldset_nemo
         fU = fieldset.U
+        fV = fieldset.V
 
-    return fieldset, fU
+    return fieldset, fU, fV
 
 
 def perIterGC():
@@ -217,10 +243,11 @@ if __name__=='__main__':
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006')
         dirread_stokes = os.path.join(datahead, 'CMEMS', 'GLOBAL_ANALYSIS_FORECAST_PHY_001_024_SMOC')
-        basefile_str = {
-            'U': 'ORCA0083-N06_2004????d05U.nc',
-            'V': 'ORCA0083-N06_2004????d05V.nc'
-        }
+        # basefile_str = {
+        #     'U': 'ORCA0083-N06_2004????d05U.nc',
+        #     'V': 'ORCA0083-N06_2004????d05V.nc'
+        # }
+        basefile_str = "SMOC_2019*.nc"
         stokes_variables = {'U': 'vsdx', 'V': 'vsdy'}
         stokesfile_str = "SMOC_2019*.nc"
         period = delta(days=366)  # 1 years period
@@ -282,7 +309,8 @@ if __name__=='__main__':
     wstokes &= True if dirread_stokes is not None else False
     meshfile = glob(os.path.join(dirread_top, 'domain', 'coordinates.nc'))
     dirread_hydro = os.path.join(dirread_top, 'means')
-    fieldset, fU = create_galapagos_fieldset(dirread_hydro, basefile_str, dirread_stokes, stokes_variables, stokesfile_str, meshfile, True, period, chunk_level=args.chs, use_stokes=wstokes)
+    fieldset, fU, fV = create_galapagos_fieldset(dirread_hydro, basefile_str, dirread_stokes, stokes_variables, stokesfile_str, meshfile,
+                                             True, period, chunk_level=args.chs, use_stokes=wstokes)
 
     # ======== ======== End of FieldSet construction ======== ======== #
     if os.path.sep in imageFileName:
