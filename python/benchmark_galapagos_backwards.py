@@ -20,6 +20,14 @@ import time as ostime
 # import dask
 warnings.simplefilter("ignore", category=xr.SerializationWarning)
 
+"""
+Galapagos boundaries:
+west: -91.8
+east: -89.0
+south: -1.4
+north:  0.7
+"""
+
 try:
     from mpi4py import MPI
 except:
@@ -188,14 +196,14 @@ def DeleteParticle(particle, fieldset, time):
 def periodicBC(particle, fieldSet, time):
     dlon = -89.0 + 91.8
     dlat = 0.7 + 1.4
-    if particle.lon > -89.0:
-        particle.lon -= dlon
     if particle.lon < -91.8:
         particle.lon += dlon
-    if particle.lat > 0.7:
-        particle.lat -= dlat
+    if particle.lon > -89.0:
+        particle.lon -= dlon
     if particle.lat < -1.4:
         particle.lat += dlat
+    if particle.lat > 0.7:
+        particle.lat -= dlat
 
 
 if __name__=='__main__':
