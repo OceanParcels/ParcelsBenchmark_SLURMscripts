@@ -76,7 +76,9 @@ vol_shape = (int(math.pow(2,noctaves))*perlinres[1]*shapescale3D[1],
 
 tsteps = 61
 tscale = 6
-scalefac = ((0.8*1000) / (60.0))  # 0.8 km/h
+# scalefac = (40.0 / (1000.0/ (60.0 * 60.0)))  # 40 km/h
+scalefac = ((4.0*1000) / (60.0*60.0))  # 4 km/h
+vertical_scale = ( 800.0 / (24*60.0*60.0) )  # 800 m/d
 
 nwaves_x = 2
 nwaves_y = 2
@@ -94,9 +96,38 @@ perlin_power_y = 0.45
 def DeleteParticle(particle, fieldset, time):
     particle.delete()
 
+
 def RenewParticle(particle, fieldset, time):
-    particle.lat = np.random.rand() * a
-    particle.lon = np.random.rand() * b
+    EA = fieldset.east_lim
+    WE = fieldset.west_lim
+    NO = fieldset.north_lim
+    SO = fieldset.south_lim
+
+    particle.lon = WE + ParcelsRandom.random() * (EA - WE)
+    particle.lat = SO + ParcelsRandom.random() * (NO - SO)
+    if fieldset.isThreeD > 0.0:
+        TO = fieldset.top
+        BO = fieldset.bottom
+        particle.depth = TO + ((BO-TO) / 0.75) + ((BO-TO) * -0.5 * ParcelsRandom.random())
+    particle.delete()
+
+
+def periodicBC(particle, fieldSet, time):
+    EA = fieldset.east_lim
+    WE = fieldset.west_lim
+    dlon = EA - WE
+    NO = fieldset.north_lim
+    SO = fieldset.south_lim
+    dlat = NO - SO
+    if particle.lon < WE:
+        particle.lon += dlon
+    if particle.lon > EA:
+        particle.lon -= dlon
+    if particle.lat < SO:
+        particle.lat += dlat
+    if particle.lat > NO:
+        particle.lat -= dlat
+
 
 def perIterGC():
     gc.collect()
@@ -163,6 +194,7 @@ def perlin_waves(periodic_wrap=False, write_out=False):
     pts = (time, lon, lat)
     wave = np.empty(velmag.shape, dtype=velmag.dtype)
     total_items = velmag.shape[0] * velmag.shape[1] * velmag.shape[2]
+    workdone = 0
     ti = 0
     for t in range(velmag.shape[0]):
         wave_x = np.empty((velmag.shape[1], velmag.shape[2]), dtype=velmag.dtype)
@@ -210,7 +242,7 @@ def perlin_waves(periodic_wrap=False, write_out=False):
                 current_item = ti
                 workdone = current_item / total_items
                 ti += 1
-                print("\rProgress: [{0:50s}] {1:.1f}%".format('#' * int(workdone * 50), workdone * 100), end="", flush=True)
+        print("\rProgress: [{0:50s}] {1:.1f}%".format('#' * int(workdone * 50), workdone * 100), end="", flush=True)
 
         with np.errstate(invalid='ignore'):
             wave_x = np.nan_to_num(np.float_power(wave_x, 0.3), nan=0.0)
@@ -292,7 +324,7 @@ def perlin_waves3D(periodic_wrap=False, write_out=False):
 
     a = (100.0 * vol_shape[0])
     b = (100.0 * vol_shape[1])
-    c = (20.0 * vol_shape[2])
+    c = (100.0 * vol_shape[2])
 
     lon = np.linspace(-a*0.5, a*0.5, vol_shape[0], dtype=np.float32)
     sys.stdout.write("lon field: {}\n".format(lon.size))
@@ -314,6 +346,7 @@ def perlin_waves3D(periodic_wrap=False, write_out=False):
     wave = np.empty(velmag.shape, dtype=velmag.dtype)
     sys.stdout.write("velmag shape: {}\n".format(velmag.shape))
     total_items = velmag.shape[0] * velmag.shape[1] * velmag.shape[2] #* velmag.shape[3]
+    workdone = 0
     ti = 0
     for t in range(velmag.shape[0]):
         wave_vol = np.empty((velmag.shape[1], velmag.shape[2], velmag.shape[3]), dtype=velmag.dtype)
@@ -331,7 +364,7 @@ def perlin_waves3D(periodic_wrap=False, write_out=False):
                 current_item = ti
                 workdone = current_item / total_items
                 ti += 1
-                print("\rProgress: [{0:50s}] {1:.1f}%".format('#' * int(workdone * 50), workdone * 100), end="", flush=True)
+        print("\rProgress: [{0:50s}] {1:.1f}%".format('#' * int(workdone * 50), workdone * 100), end="", flush=True)
         for k in range(velmag.shape[3]):
             wave_vol[:, :, k] *= depthgrad[k]
         with np.errstate(invalid='ignore'):
@@ -346,7 +379,7 @@ def perlin_waves3D(periodic_wrap=False, write_out=False):
     V = ndimage.convolve(wave*scalefac, V_OP_3D, mode='reflect')
     V = np.transpose(V, (0,3,2,1))
     # W = np.gradient(wave*scalefac, 7, edge_order=1, axis=2)
-    W = ndimage.convolve(wave*scalefac, W_OP_3D, mode='nearest')
+    W = ndimage.convolve(wave*vertical_scale, W_OP_3D, mode='nearest')
     W = np.transpose(W, (0,3,2,1))
     ds = depth.size-1
     W[:, 0, :, :] = np.fabs(W[:, 0, :, :])
@@ -546,15 +579,18 @@ def fieldset_from_file(periodic_wrap=False, filepath=None):
         fieldset.add_constant("bottom", depth[len(depth)-1] - 0.001)
     return fieldset, a, b, c
 
+
 class AgeParticle_JIT(JITParticle):
     age = Variable('age', dtype=np.float64, initial=0.0)
     life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max)
     initialized_dynamic = Variable('initialized_dynamic', dtype=np.int32, initial=0)
 
+
 class AgeParticle_SciPy(ScipyParticle):
     age = Variable('age', dtype=np.float64, initial=0.0)
     life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max)
     initialized_dynamic = Variable('initialized_dynamic', dtype=np.int32, initial=0)
+
 
 def initialize(particle, fieldset, time):
     if particle.initialized_dynamic < 1:
@@ -565,11 +601,13 @@ def initialize(particle, fieldset, time):
         # particle.life_expectancy = time+ParcelsRandom.uniform(.0, fieldset.life_expectancy) * ((3.0/2.0)**2.0)
         particle.initialized_dynamic = 1
 
+
 def Age(particle, fieldset, time):
     if particle.state == StateCode.Evaluate:
         particle.age = particle.age + math.fabs(particle.dt)
     if particle.age > particle.life_expectancy:
         particle.delete()
+
 
 age_ptype = {'scipy': AgeParticle_SciPy, 'jit': AgeParticle_JIT}
 
@@ -710,6 +748,11 @@ if __name__=='__main__':
                 fieldset, a, b = perlin_waves(periodic_wrap=periodicFlag, write_out=field_fpath)
             else:
                 fieldset, a, b, c = perlin_waves3D(periodic_wrap=periodicFlag, write_out=field_fpath)
+    fieldset.add_constant("east_lim", +a * 0.5)
+    fieldset.add_constant("west_lim", -a * 0.5)
+    fieldset.add_constant("north_lim", +b * 0.5)
+    fieldset.add_constant("south_lim", -b * 0.5)
+    fieldset.add_constant("isThreeD", 1.0 if use_3D else -1.0)
 
     if args.compute_mode == 'scipy':
         Nparticle = 2**10
@@ -896,6 +939,7 @@ if __name__=='__main__':
     kernels = pset.Kernel(advect_K ,delete_cfiles=True)
     if use_3D:
         kernels += pset.Kernel(reflect_top_bottom, delete_cfiles=True)
+    kernels += pset.Kernel(periodicBC, delete_cfiles=True)
     if agingParticles:
         kernels += pset.Kernel(initialize, delete_cfiles=True)
         kernels += pset.Kernel(Age, delete_cfiles=True)
