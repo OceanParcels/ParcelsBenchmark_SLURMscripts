@@ -187,22 +187,48 @@ class plastic_particle(JITParticle): #ScipyParticle): #
     sw_visc = Variable('sw_visc',dtype=np.float32,to_write=False)    
     a = Variable('a',dtype=np.float32,to_write=False)
     vs = Variable('vs',dtype=np.float32,to_write=True)    
-    
-"""functions and kernals"""
+
+
+"""functions and kernels"""
+
 
 def DeleteParticle(particle, fieldset, time):
     """Kernel for deleting particles if they are out of bounds."""
     # print('particle is deleted') #print(particle.lon, particle.lat, particle.depth)
     particle.delete()
 
+
+# ==== in this way, only to be used as error-action function ==== #
+def reflect_top_bottom(particle, fieldset, time):
+    if particle.depth > 1.0:
+        particle.depth -= 1.0
+    else:
+        particle.depth += 1.0
+
+
+def periodicBC(particle, fieldSet, time):
+    dlon = 180 + 180
+    dlat = 84 + 84
+    if particle.lon < -180.0:
+        particle.lon += dlon
+    if particle.lon > +180.0:
+        particle.lon -= dlon
+    if particle.lat < -84.0:
+        particle.lat += dlat
+    if particle.lat > +84.0:
+        particle.lat -= dlat
+
+
 def perIterGC():
     gc.collect()
+
 
 def getclosest_ij(lats,lons,latpt,lonpt):     
     """Function to find the index of the closest point to a certain lon/lat value."""
     dist_sq = (lats-latpt)**2 + (lons-lonpt)**2                 # find squared distance of every point on grid
     minindex_flattened = dist_sq.argmin()                       # 1D index of minimum dist_sq element
     return np.unravel_index(minindex_flattened, lats.shape)     # Get 2D index for latvals and lonvals arrays from 1D index
+
 
 def AdvectionRK4_3D_vert(particle, fieldset, time): # adapting AdvectionRK4_3D kernal to only vertical velocity 
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
@@ -223,7 +249,8 @@ def AdvectionRK4_3D_vert(particle, fieldset, time): # adapting AdvectionRK4_3D k
     #particle.lon += particle.lon #(u1 + 2*u2 + 2*u3 + u4) / 6. * particle.dt
     #particle.lat += particle.lat #lats[1,1] #(v1 + 2*v2 + 2*v3 + v4) / 6. * particle.dt
     particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
-    
+
+
 def Profiles(particle, fieldset, time):  
     particle.temp = fieldset.cons_temperature[time, particle.depth,particle.lat,particle.lon]  
     particle.d_phy= fieldset.d_phy[time, particle.depth,particle.lat,particle.lon]  
@@ -236,10 +263,12 @@ def Profiles(particle, fieldset, time):
     particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
     particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
 
+
 if __name__ == "__main__":
     parser = ArgumentParser(description="Example of particle advection using in-memory stommel test case")
     parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="benchmark_deep_migration.png", help="image file name of the plot")
     parser.add_argument("-p", "--periodic", dest="periodic", action='store_true', default=False, help="enable/disable periodic wrapping (else: extrapolation)")
+    parser.add_argument("-d", "--delParticle", dest="delete_particle", action='store_true', default=False, help="switch to delete a particle (True) or periodic-wrapping (and resetting) a particle (default: False).")
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
     # parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=int, default=365, help="runtime in days (default: 365)")
     parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*366", help="runtime in days (default: 1*365)")
@@ -526,19 +555,19 @@ if __name__ == "__main__":
     with open(profile_auxin_path, 'rb') as f:
         depth,T_z,S_z,rho_z,upsilon_z,mu_z = pickle.load(f)
 
-    v_lon = np.array([minlon,maxlon])
-    v_lat = np.array([minlat,maxlat])
+    v_lon = np.array([minlon, maxlon])
+    v_lat = np.array([minlat, maxlat])
 
-    print("|lon| = {}; |lat| = {}".format(v_lon.shape[0], v_lat.shape[0]))
+    print("|lon| = {}; |lat| = {}".format(lon_release.shape[0], lat_release.shape[0]))
 
     kv_or = np.transpose(np.tile(np.array(upsilon_z),(v_lon.shape[0],v_lat.shape[0],1)), (2,0,1))   # kinematic viscosity
     sv_or = np.transpose(np.tile(np.array(mu_z),(v_lon.shape[0],v_lat.shape[0],1)), (2,0,1))        # dynamic viscosity of seawater
     try:
-        KV = Field('KV', kv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', field_chunksize=False)#,transpose="True") #,fieldtype='U')
-        SV = Field('SV', sv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', field_chunksize=False)#,transpose="True") #,fieldtype='U')
+        KV = Field('KV', kv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', field_chunksize=False)  #,transpose="True") #,fieldtype='U')
+        SV = Field('SV', sv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', field_chunksize=False)  #,transpose="True") #,fieldtype='U')
     except (SyntaxError, ):
-        KV = Field('KV', kv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', chunksize=False)#,transpose="True") #,fieldtype='U')
-        SV = Field('SV', sv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', chunksize=False)#,transpose="True") #,fieldtype='U')
+        KV = Field('KV', kv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', chunksize=False)  #,transpose="True") #,fieldtype='U')
+        SV = Field('SV', sv_or, lon=v_lon, lat=v_lat, depth=depths, mesh='spherical', chunksize=False)  #,transpose="True") #,fieldtype='U')
     fieldset.add_field(KV, 'KV')
     fieldset.add_field(SV, 'SV')
 
@@ -566,6 +595,9 @@ if __name__ == "__main__":
         pfile = pset.ParticleFile(output_fpath, outputdt=delta(hours=hrsoutdt))
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(seawaterdensity.polyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
     kernels = pset.Kernel(AdvectionRK4_3D_vert) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
+    if not args.delete_particle:
+        kernels += pset.Kernel(periodicBC)
+    delete_func = DeleteParticle
 
     starttime = 0
     endtime = 0
@@ -580,7 +612,7 @@ if __name__ == "__main__":
         #starttime = ostime.time()
         starttime = ostime.process_time()
 
-    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds = secsdt), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds = secsdt), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom, ErrorCode.ErrorInterpolation: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
