@@ -64,8 +64,8 @@ Nparticle = int(math.pow(2,10)) # equals to Nparticle = 1024
 #Nparticle = int(math.pow(2,19)) # equals to Nparticle = 524288
 
 noctaves=4
-perlinres=(1,24,12,1)  # (1,32,8)
-shapescale=(4,2,2,4)  # (4,8,8)
+perlinres=(1,20,10,1)  # (1,32,8)
+shapescale=(4,3,3,4)  # (4,8,8)
 shapescale3D=(4,1,1,2)  # (4,8,8)
 perlin_persistence=0.65
 img_shape = (int(math.pow(2,noctaves))*perlinres[1]*shapescale[1],
