@@ -261,12 +261,12 @@ if __name__=='__main__':
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
         computer_env = "Gemini"
         basefile_str = {
-            'U': 'ORCA0083-N06_20[00-10]????d05U.nc',
-            'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
+            'U': 'ORCA0083-N06_200[0-9]????d05U.nc',
+            'V': 'ORCA0083-N06_200[0-9]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-GLOB-30M_20[00-10]??_uss.nc"
-        period = delta(days=366*11)  # 10 years period
+        stokesfile_str = "WW3-GLOB-30M_200[0-9]??_uss.nc"
+        period = delta(days=366*10)  # 10 years period
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
         headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/galapagos".format(CARTESIUS_SCRATCH_USERNAME)
@@ -295,12 +295,12 @@ if __name__=='__main__':
         dirmesh = os.path.join(dirread_top, 'domain')
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
         basefile_str = {
-            'U': 'ORCA0083-N06_20[00-10]????d05U.nc',
-            'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
+            'U': 'ORCA0083-N06_200[0-9]????d05U.nc',
+            'V': 'ORCA0083-N06_200[0-9]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-GLOB-30M_20[00-10]??_uss.nc"
-        period = delta(days=366*11)  # 10 years period
+        stokesfile_str = "WW3-GLOB-30M_200[0-9]??_uss.nc"
+        period = delta(days=366*10)  # 10 years period
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
@@ -312,12 +312,12 @@ if __name__=='__main__':
         dirmesh = os.path.join(dirread_top, 'domain')
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
         basefile_str = {
-            'U': 'ORCA0083-N06_20[00-10]????d05U.nc',
-            'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
+            'U': 'ORCA0083-N06_200[0-9]????d05U.nc',
+            'V': 'ORCA0083-N06_200[0-9]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-GLOB-30M_20[00-10]??_uss.nc"
-        period = delta(days=366*11)  # 10 years period
+        stokesfile_str = "WW3-GLOB-30M_200[0-9]??_uss.nc"
+        period = delta(days=366*10)  # 10 years period
         computer_env = "Snellius"
     else:
         headdir = "/var/scratch/galapagos"
@@ -332,7 +332,7 @@ if __name__=='__main__':
             'V': 'ORCA0083-N06_2000????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-*_2010??_uss.nc"
+        stokesfile_str = "WW3-*_2000??_uss.nc"
         period = delta(days=366)  # 1 years period
 
     print("running {} on {} (uname: {}) - branch '{}' - argv: {}".format(scenario, computer_env, os.uname()[1], branch, sys.argv[1:]))
