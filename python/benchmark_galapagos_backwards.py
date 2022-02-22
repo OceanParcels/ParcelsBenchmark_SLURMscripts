@@ -1,9 +1,13 @@
 from parcels import FieldSet, JITParticle, ScipyParticle, AdvectionRK4, Variable, StateCode, OperationCode, ErrorCode
+from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC  # noqa
 from parcels import BenchmarkParticleSetSOA, BenchmarkParticleSetAOS, BenchmarkParticleSetNodes
 from parcels import ParticleSetSOA, ParticleSetAOS, ParticleSetNodes
-from parcels import GenerateID_Service, SequentialIdGenerator, LibraryRegisterC  # noqa
-
+from parcels import ParticleFileAOS, ParticleFileSOA, ParticleFileNodes
+from parcels import KernelAOS, KernelSOA, KernelNodes
+from parcels import BenchmarkKernelAOS, BenchmarkKernelSOA, BenchmarkKernelNodes
+from parcels import version as parcels_version  # noqa: F401
 from datetime import timedelta as delta
+from parcels.tools import logger  # noqa: F401
 from glob import glob
 import numpy as np
 # import itertools
@@ -36,31 +40,34 @@ except:
 # pset = None
 pset_modes = ['soa', 'aos', 'nodes']
 ptype = {'scipy': ScipyParticle, 'jit': JITParticle}
-pset_types_dry = {'soa': {'pset': ParticleSetSOA},  # , 'pfile': ParticleFileSOA, 'kernel': KernelSOA
-                  'aos': {'pset': ParticleSetAOS},  # , 'pfile': ParticleFileAOS, 'kernel': KernelAOS
-                  'nodes': {'pset': ParticleSetNodes}}  # , 'pfile': ParticleFileNodes, 'kernel': KernelNodes
-pset_types = {'soa': {'pset': BenchmarkParticleSetSOA},
-              'aos': {'pset': BenchmarkParticleSetAOS},
-              'nodes': {'pset': BenchmarkParticleSetNodes}}
+pset_types_dry = {'soa': {'pset': ParticleSetSOA, 'pfile': ParticleFileSOA, 'kernel': KernelSOA},
+                  'aos': {'pset': ParticleSetAOS, 'pfile': ParticleFileAOS, 'kernel': KernelAOS},
+                  'nodes': {'pset': ParticleSetNodes, 'pfile': ParticleFileNodes, 'kernel': KernelNodes}}
+pset_types = {'soa': {'pset': BenchmarkParticleSetSOA, 'pfile': ParticleFileSOA, 'kernel': BenchmarkKernelSOA},
+              'aos': {'pset': BenchmarkParticleSetAOS, 'pfile': ParticleFileAOS, 'kernel': BenchmarkKernelAOS},
+              'nodes': {'pset': BenchmarkParticleSetNodes, 'pfile': ParticleFileNodes, 'kernel': BenchmarkKernelNodes}}
 
 
 def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variables, stokesfile_str, meshfile,
                               periodic_wrap, period, chunk_level=0, use_stokes=False):
     files = None
     data_is_dict = False
+    logger.info("base file string(s): {}".format(basefile_str))
     if type(basefile_str) == dict:
         files = {'U': sorted(glob(os.path.join(datahead, basefile_str['U']))),
                  'V': sorted(glob(os.path.join(datahead, basefile_str['V'])))}
         data_is_dict = True
     else:
         files = sorted(glob(os.path.join(datahead, basefile_str)))
-    # if meshfile is None and not data_is_dict:
-    #     meshfile = files
     mesh_is_dict = type(meshfile) == dict
+    # logger.info("mesh file(s): {}".format(meshfile))
+    # logger.info("data file(s): {}".format(files))
+
     # ddir = os.path.join(datahead,"NEMO-MEDUSA/ORCA0083-N006/")
     # ufiles = sorted(glob(ddir+'means/ORCA0083-N06_20[00-10]*d05U.nc'))
     # vfiles = [u.replace('05U.nc', '05V.nc') for u in ufiles]
     # meshfile = glob(ddir+'domain/coordinates.nc')
+
     nemo_files = None
     if meshfile is None:
         nemo_files = {'U': files['U'] if data_is_dict else files,
@@ -72,6 +79,7 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
                       'V': {'lon': meshfile['V'] if mesh_is_dict else meshfile,
                             'lat': meshfile['V'] if mesh_is_dict else meshfile,
                             'data': files['V'] if data_is_dict else files}}
+    # logger.info("NEMO/SMOC file(s): {}".format(nemo_files))
     nemo_variables = {'U': 'uo', 'V': 'vo'}
     nemo_dimensions = None
     if (type(basefile_str) == dict and "ORCA" in basefile_str["U"]) or (type(basefile_str) == str and "ORCA" in basefile_str):
@@ -82,41 +90,30 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
     extrapolation = False if periodic_wrap else True
     # ==== Because the stokes data is a different grid, we actually need to define the chunking ==== #
     # fieldset_nemo = FieldSet.from_nemo(nemofiles, nemovariables, nemodimensions, field_chunksize='auto')
-    nemo_chs = None
     nemo_nchs = None
     if chunk_level > 1:
         if (type(basefile_str) == dict and "ORCA" in basefile_str["U"]) or (type(basefile_str) == str and "ORCA" in basefile_str):
-            nemo_chs = {'time_counter': 1, 'depthu': 75, 'depthv': 75, 'depthw': 75, 'deptht': 75, 'y': 100, 'x': 100}
             nemo_nchs = {
                 'U': {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthu', 25), 'time': ('time_counter', 1)},  #
                 'V': {'lon': ('x', 128), 'lat': ('y', 96), 'depth': ('depthv', 25), 'time': ('time_counter', 1)},  #
             }
         elif (type(basefile_str) == dict and "SMOC" in basefile_str["U"]) or (type(basefile_str) == str and "SMOC" in basefile_str):
-            nemo_chs = {'time': 1, 'depth': 75, 'latitude': 100, 'longitude': 100}
             nemo_nchs = {
                 'U': {'lon': ('longitude', 128), 'lat': ('latitude', 96), 'depth': ('depth', 25), 'time': ('time', 1)},  #
                 'V': {'lon': ('longitude', 128), 'lat': ('latitude', 96), 'depth': ('depth', 25), 'time': ('time', 1)},  #
             }
     elif chunk_level > 0:
-        nemo_chs = 'auto'
         nemo_nchs = {
             'U': 'auto',
             'V': 'auto'
         }
     else:
-        nemo_chs = False
         nemo_nchs = False
 
-    try:
-        if meshfile is None:
-            fieldset_nemo = FieldSet.from_netcdf(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, field_chunksize=nemo_chs)
-        else:
-            fieldset_nemo = FieldSet.from_nemo(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, field_chunksize=nemo_chs)
-    except (SyntaxError, ):
-        if meshfile is None:
-            fieldset_nemo = FieldSet.from_netcdf(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
-        else:
-            fieldset_nemo = FieldSet.from_nemo(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
+    if meshfile is None:
+        fieldset_nemo = FieldSet.from_netcdf(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
+    else:
+        fieldset_nemo = FieldSet.from_nemo(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
 
     fU = None
     fV = None
@@ -130,36 +127,29 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
         # stokes_files = sorted(glob(os.path.join(stokeshead, "WW3-*_20[00-10]??_uss.nc")))
         # stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokes_dimensions = {'lat': 'latitude', 'lon': 'longitude', 'time': 'time'}
-        stokes_chs = None
+
         stokes_nchs = None
         if chunk_level > 1:
             if (type(basefile_str) == dict and "ORCA" in basefile_str["U"]) or (type(basefile_str) == str and "ORCA" in basefile_str):
-                stokes_chs = {'time': 1, 'latitude': 16, 'longitude': 32}
                 stokes_nchs = {
                     'U': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)},
                     'V': {'lon': ('longitude', 32), 'lat': ('latitude', 16), 'time': ('time', 1)}
                 }
             elif (type(basefile_str) == dict and "SMOC" in basefile_str["U"]) or (type(basefile_str) == str and "SMOC" in basefile_str):
-                stokes_chs = nemo_chs
                 stokes_nchs = nemo_nchs
         elif chunk_level > 0:
-            stokes_chs = 'auto'
             stokes_nchs = {
                 'U': 'auto',
                 'V': 'auto'
             }
         else:
-            stokes_chs = False
             stokes_nchs = False
 
         # stokes_period = delta(days=366+2*31) if periodic_wrap else False  # 14 month period
         # stokes_period = delta(days=366*11) if periodic_wrap else False  # 10 years period
         stokes_period = period if periodic_wrap else False  # 10 years period
         fieldset_stokes = None
-        try:
-            fieldset_stokes = FieldSet.from_netcdf(stokes_files, stokes_variables, stokes_dimensions, field_chunksize=stokes_chs, time_periodic=stokes_period, allow_time_extrapolation=extrapolation)
-        except (SyntaxError, ):
-            fieldset_stokes = FieldSet.from_netcdf(stokes_files, stokes_variables, stokes_dimensions, chunksize=stokes_nchs, time_periodic=stokes_period, allow_time_extrapolation=extrapolation)
+        fieldset_stokes = FieldSet.from_netcdf(stokes_files, stokes_variables, stokes_dimensions, chunksize=stokes_nchs, time_periodic=stokes_period, allow_time_extrapolation=extrapolation)
         fieldset_stokes.add_periodic_halo(zonal=True, meridional=False, halosize=5)
 
         fieldset = FieldSet(U=fieldset_nemo.U+fieldset_stokes.U, V=fieldset_nemo.V+fieldset_stokes.V)
@@ -220,6 +210,8 @@ if __name__=='__main__':
     parser.add_argument("--dry", dest="dryrun", action="store_true", default=False, help="Start dry run (no benchmarking and its classes")
     args = parser.parse_args()
 
+    logger.info("Parcels version: {}".format(parcels_version))
+
     pset_type = str(args.pset_type).lower()
     assert pset_type in pset_types
     ParticleSet = pset_types[pset_type]['pset']
@@ -273,7 +265,7 @@ if __name__=='__main__':
             'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-*_2010??_uss.nc"
+        stokesfile_str = "WW3-GLOB-30M_20[00-10]??_uss.nc"
         period = delta(days=366*11)  # 10 years period
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
@@ -307,7 +299,7 @@ if __name__=='__main__':
             'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-*_2010??_uss.nc"
+        stokesfile_str = "WW3-GLOB-30M_20[00-10]??_uss.nc"
         period = delta(days=366*11)  # 10 years period
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
@@ -324,7 +316,7 @@ if __name__=='__main__':
             'V': 'ORCA0083-N06_20[00-10]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-*_2010??_uss.nc"
+        stokesfile_str = "WW3-GLOB-30M_20[00-10]??_uss.nc"
         period = delta(days=366*11)  # 10 years period
         computer_env = "Snellius"
     else:
@@ -354,10 +346,10 @@ if __name__=='__main__':
     # create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variables, stokesfile_str, meshfile, periodic_wrap, period, chunk_level, use_stokes)
 
     wstokes &= True if dirread_stokes is not None else False
-    meshfile = glob(os.path.join(dirread_top, 'domain', 'coordinates.nc'))
+    meshfile = glob(os.path.join(dirmesh, 'coordinates.nc'))
     meshfile = None if not len(meshfile)>0 else meshfile
     fieldset, fU, fV = create_galapagos_fieldset(dirread_hydro, basefile_str, dirread_stokes, stokes_variables, stokesfile_str, meshfile,
-                                             True, period, chunk_level=args.chs, use_stokes=wstokes)
+                                                 True, period, chunk_level=args.chs, use_stokes=wstokes)
 
     # ======== ======== End of FieldSet construction ======== ======== #
     if os.path.sep in imageFileName:
@@ -388,9 +380,6 @@ if __name__=='__main__':
         mpi_size = mpi_comm.Get_size()
         outfile += '_n' + str(mpi_size)
         pfname += '_n' + str(mpi_size)
-    if args.profiling:
-        outfile += '_prof'
-        pfname += 'prof'
     if with_GC:
         outfile += '_wGC'
         pfname += '_wGC'
@@ -408,6 +397,7 @@ if __name__=='__main__':
     galapagos_extent = [-91.8, -89, -1.4, 0.7]
     startlon, startlat = np.meshgrid(np.arange(galapagos_extent[0], galapagos_extent[1], 0.2),
                                      np.arange(galapagos_extent[2], galapagos_extent[3], 0.2))
+
     print("|lon| = {}; |lat| = {}".format(startlon.shape[0], startlat.shape[0]))
 
     pset = ParticleSet(fieldset=fieldset, pclass=GalapagosParticle, lon=startlon, lat=startlat, time=fU.grid.time[-1], repeatdt=delta(days=7), idgen=idgen, c_lib_register=c_lib_register)

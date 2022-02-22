@@ -168,6 +168,7 @@ def Kooi(particle,fieldset,time):
     z = particle.depth
     dt = particle.dt
 
+
 """ Defining the particle class """
 
 class plastic_particle(JITParticle): #ScipyParticle): #
