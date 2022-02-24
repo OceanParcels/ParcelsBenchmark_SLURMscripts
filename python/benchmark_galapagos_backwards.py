@@ -200,6 +200,7 @@ if __name__=='__main__':
     parser = ArgumentParser(description="Example of particle advection around an idealised peninsula")
     parser.add_argument("-s", "--stokes", dest="stokes", action='store_true', default=False, help="use Stokes' field data")
     parser.add_argument("-i", "--imageFileName", dest="imageFileName", type=str, default="benchmark_galapagos.png", help="image file name of the plot")
+    parser.add_argument("-N", "--n_particles", dest="nparticles", type=str, default="2**6", help="number of particles to generate and advect (default: 2e6)")
     parser.add_argument("-p", "--periodic", dest="periodic", action='store_true', default=False, help="enable/disable periodic wrapping (else: extrapolation)")
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
     # parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=int, default=365, help="runtime in days (default: 365)")
@@ -224,6 +225,10 @@ if __name__=='__main__':
     with_GC = args.useGC
     wstokes = args.stokes
     periodicFlag=args.periodic
+    Nparticle = int(float(eval(args.nparticles)))
+    sx = int(math.sqrt(Nparticle))
+    sy = sx
+    Nparticle = sx * sy
 
     # ======================================================= #
     # new ID generator things
@@ -370,6 +375,9 @@ if __name__=='__main__':
     if periodicFlag:
         outfile += '_p'
         pfname += '_p'
+    if wstokes:
+        outfile += '_s'
+        pfname += '_s'
     if args.write_out:
         pfname += '_w'
     if time_in_years != 1:
@@ -386,6 +394,8 @@ if __name__=='__main__':
     else:
         outfile += '_woGC'
         pfname += '_woGC'
+    outfile += "_n"+str(Nparticle)
+    pfname += "_n"+str(Nparticle)
     outfile += '_chs%d' % (args.chs)
     pfname += '_chs%d' % (args.chs)
     imageFileName = pfname + pfext
@@ -395,8 +405,10 @@ if __name__=='__main__':
         os.mkdir(dirwrite)
 
     galapagos_extent = [-91.8, -89, -1.4, 0.7]
-    startlon, startlat = np.meshgrid(np.arange(galapagos_extent[0], galapagos_extent[1], 0.2),
-                                     np.arange(galapagos_extent[2], galapagos_extent[3], 0.2))
+    # startlon, startlat = np.meshgrid(np.arange(galapagos_extent[0], galapagos_extent[1], 0.2),
+    #                                  np.arange(galapagos_extent[2], galapagos_extent[3], 0.2))
+    startlon, startlat = np.meshgrid(np.linspace(galapagos_extent[0], galapagos_extent[1], sx),
+                                     np.linspace(galapagos_extent[2], galapagos_extent[3], sy))
 
     print("|lon| = {}; |lat| = {}".format(startlon.shape[0], startlat.shape[0]))
 
