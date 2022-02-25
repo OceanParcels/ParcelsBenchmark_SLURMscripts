@@ -52,6 +52,7 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
                               periodic_wrap, period, chunk_level=0, use_stokes=False):
     files = None
     data_is_dict = False
+    logger.info("directory string(s): {}".format(datahead))
     logger.info("base file string(s): {}".format(basefile_str))
     if type(basefile_str) == dict:
         files = {'U': sorted(glob(os.path.join(datahead, basefile_str['U']))),
@@ -256,7 +257,7 @@ if __name__=='__main__':
     stokesfile_str = None
     stokes_variables = None
     period = None
-    if os.uname()[1] in ['science-bs35', 'science-bs36']:  # Gemini
+    if os.uname()[1] in ['science-bs35', 'science-bs36', 'science-bs37', 'science-bs38', 'science-bs39', 'science-bs40', 'science-bs41', 'science-bs42']:  # Gemini
         headdir = "/scratch/{}/experiments/galapagos".format("ckehl")
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data/oceanparcels/input_data"
@@ -270,7 +271,7 @@ if __name__=='__main__':
             'V': 'ORCA0083-N06_200[0-9]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
-        stokesfile_str = "WW3-GLOB-30M_200[0-9]??_uss.nc"
+        stokesfile_str = "WW3-GLOB-30M_20????_uss.nc"
         period = delta(days=366*10)  # 10 years period
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
