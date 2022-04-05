@@ -596,7 +596,7 @@ if __name__ == "__main__":
     else:
         nchs = False
     # dask.config.set({'array.chunk-size': '16MiB'})
-    fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, chunksize=nchs, time_periodic=delta(days=366))
+    fieldset = FieldSet.from_nemo(filenames, variables, dimensions, allow_time_extrapolation=False, chunksize=nchs, time_periodic=True)
     depths = fieldset.U.depth
     # ======== ======== End of FieldSet construction ======== ======== #
     if os.path.sep in imageFileName:
