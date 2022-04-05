@@ -440,7 +440,7 @@ if __name__ == "__main__":
     dirread_mesh = ""
     basefile_str = {}
     year = 2000
-    if os.uname()[1] in ['science-bs35', 'science-bs36', 'science-bs37', 'science-bs38', 'science-bs39', 'science-bs40', 'science-bs41', 'science-bs42']:  # Gemini
+    if fnmatch.fnmatchcase(os.uname()[1], "science-bs*"):  # Gemini
         # headdir = "/scratch/{}/experiments/deep_migration_behaviour".format(os.environ['USER'])
         headdir = "/scratch/{}/experiments/deep_migration_behaviour".format("ckehl")
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
@@ -608,7 +608,7 @@ if __name__ == "__main__":
             imageFileName = os.path.split(imageFileName)[1]
     pfname, pfext = os.path.splitext(imageFileName)
 
-    outfile = 'Kooi+NEMO_3D_grid10by10_rho'+str(int(rho_pl))+'_r'+ r_pl+'_'+str(time_in_days)+'days_'+str(dt_sec)+'dt_'+str(outdt_hours)+'outdt'
+    outfile = 'Kooi_NEMO3D_rho'+str(int(rho_pl))+'_r'+ r_pl+'_'+str(time_in_days)+'days_'+str(dt_sec)+'dt_'+str(outdt_hours)+'outdt'
     if periodicFlag:
         outfile += '_p'
         pfname += '_p'
@@ -636,14 +636,14 @@ if __name__ == "__main__":
     pfname += '_%s' % ('nochk' if args.chs==0 else ('achk' if args.chs==1 else 'dchk'))
     imageFileName = pfname + pfext
 
-    dirwrite = os.path.join(odir, "rho_"+str(int(rho_pl))+"kgm-3")
+    dirwrite = os.path.join(headdir, "NEMOres", "rho_"+str(int(rho_pl))+"kgm-3")
     if not os.path.exists(dirwrite):
         os.mkdir(dirwrite)
 
     # Kinematic viscosity and dynamic viscosity not available in MEDUSA so replicating Kooi's profiles at all grid points
     # profile_auxin_path = '/home/dlobelle/Kooi_data/data_input/profiles.pickle'
     # profile_auxin_path = '/scratch/ckehl/experiments/deep_migration_behaviour/aux_in/profiles.pickle'
-    profile_auxin_path = os.path.join(headdir, 'aux_in/profiles.pickle')
+    profile_auxin_path = os.path.join(headdir, "aux_in", "profiles.pickle")
     with open(profile_auxin_path, 'rb') as f:
         depth,T_z,S_z,rho_z,upsilon_z,mu_z = pickle.load(f)
 
