@@ -717,7 +717,7 @@ if __name__ == "__main__":
                             lon=lon_release,
                             lat=lat_release,
                             depth=z_release,
-                            time = [np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_additional.shape[0])
+                            time = [np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0])
         pset.add(psetA)
     else:
         time_field = np.array([np.datetime64('%s-%s-05' % (year, '01')), ] * lon_release.shape[0], dtype=np.datetime64)
