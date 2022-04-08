@@ -698,9 +698,9 @@ if __name__ == "__main__":
 
     """ Defining the particle set """
     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
-    z_release = np.ones(Nparticle, dtype=np.float32)
+    z_release = np.ones(lon_release.shape[0], dtype=np.float32)
     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
-    z_additional = np.ones(Nparticle, dtype=np.float32)
+    z_additional = np.ones(lon_additional.shape[0], dtype=np.float32)
 
     print("|startlon| = {}, |startlat| = {} ;|lon| = {}; |lat| = {}".format(lon_additional.shape[0], lat_additional.shape[0], lon_release.shape[0], lat_release.shape[0]))
     pset = ParticleSet.from_list(fieldset=fieldset,         # the fields on which the particles are advected
