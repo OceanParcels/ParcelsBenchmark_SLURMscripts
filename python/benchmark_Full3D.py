@@ -649,10 +649,12 @@ if __name__ == "__main__":
     with open(profile_auxin_path, 'rb') as f:
         depth,T_z,S_z,rho_z,upsilon_z,mu_z = pickle.load(f)
 
-    if Nparticle > 1:
-        lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
-        z_release = np.ones(Nparticle, dtype=np.float32)
-    print("|lon| = {}; |lat| = {}".format(lon_release.shape[0], lat_release.shape[0]))
+    # if Nparticle > 1:
+    #     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
+    #     z_release = np.ones(lon_release.shape[0], dtype=np.float32)
+    #     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
+    #     z_additional = np.ones(lon_additional.shape[0], dtype=np.float32)
+    # print("|lon| = {}; |lat| = {}".format(lon_release.shape[0], lat_release.shape[0]))
 
     v_lon = np.array([EqPac['minlon'], EqPac['maxlon']])
     v_lat = np.array([EqPac['minlat'], EqPac['maxlat']])
@@ -702,12 +704,12 @@ if __name__ == "__main__":
     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
     z_additional = np.ones(lon_additional.shape[0], dtype=np.float32)
 
-    print("|startlon| = {}, |startlat| = {} ;|lon| = {}; |lat| = {}".format(lon_additional.shape[0], lat_additional.shape[0], lon_release.shape[0], lat_release.shape[0]))
+    print("|startlon| = {}, |startlat| = {}, |startdepth| = {}; |lon| = {}; |lat| = {}, |depth| = {}".format(lon_additional.shape[0], lat_additional.shape[0], z_additional.shape[0], lon_release.shape[0], lat_release.shape[0], z_release.shape[0]))
     pset = ParticleSet.from_list(fieldset=fieldset,         # the fields on which the particles are advected
                                  pclass=plastic_ptype[(args.compute_mode).lower()],   # the type of particles (JITParticle or ScipyParticle)  # plastic_particle
                                  lon= lon_additional,          # a vector of release longitudes
                                  lat= lat_additional,          # a vector of release latitudes
-                                 time = [np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_additional.shape[0],
+                                 time = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_additional.shape[0], dtype=np.datetime64),
                                  depth = z_additional,         # a vector of release depth values
                                  repeatdt=delta(minutes=repeatRateMinutes),
                                  idgen=idgen,
@@ -717,10 +719,12 @@ if __name__ == "__main__":
                             lon=lon_release,
                             lat=lat_release,
                             depth=z_release,
-                            time = [np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0])
+                            time = [np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0],
+                            idgen=idgen,
+                            c_lib_register=c_lib_register)
         pset.add(psetA)
     else:
-        time_field = np.array([np.datetime64('%s-%s-05' % (year, '01')), ] * lon_release.shape[0], dtype=np.datetime64)
+        time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0], dtype=np.datetime64)
         # pdata = np.concatenate( (lonlat_field, time_field), axis=1 )
         pdata = {'lon': lon_release, 'lat': lat_release, 'depth': z_release, 'time': time_field}
         pset.add(pdata)
