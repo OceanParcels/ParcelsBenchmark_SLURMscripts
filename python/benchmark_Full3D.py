@@ -710,7 +710,8 @@ if __name__ == "__main__":
                                  pclass=plastic_ptype[(args.compute_mode).lower()],   # the type of particles (JITParticle or ScipyParticle)  # plastic_particle
                                  lon= lon_additional,          # a vector of release longitudes
                                  lat= lat_additional,          # a vector of release latitudes
-                                 time = (np.ones(lon_additional.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
+                                 # time = (np.ones(lon_additional.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
+                                 time=np.datetime64('%s-%s-05' % (str(year), '01')),
                                  depth = z_additional,         # a vector of release depth values
                                  repeatdt=delta(minutes=repeatRateMinutes),
                                  idgen=idgen,
@@ -720,12 +721,14 @@ if __name__ == "__main__":
                             lon=lon_release,
                             lat=lat_release,
                             depth=z_release,
-                            time = (np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
+                            # time=(np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
+                            time=np.datetime64('%s-%s-05' % (str(year), '01')),
                             idgen=idgen,
                             c_lib_register=c_lib_register)
         pset.add(psetA)
     else:
-        time_field = (np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64)
+        # time_field = (np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64)
+        time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0] * lon_release.shape[1], dtype=np.datetime64)
         # pdata = np.concatenate( (lonlat_field, time_field), axis=1 )
         pdata = {'lon': lon_release, 'lat': lat_release, 'depth': z_release, 'time': time_field}
         pset.add(pdata)
