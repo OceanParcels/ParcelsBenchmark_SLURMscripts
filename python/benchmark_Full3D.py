@@ -324,6 +324,7 @@ class MicroplasticsJIT(JITParticle):
     tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
+    euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
     a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
     a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
@@ -357,6 +358,7 @@ class MicroplasticsScipy(ScipyParticle):
     tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
+    euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
     a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
     a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
@@ -373,7 +375,8 @@ class MicroplasticsScipy(ScipyParticle):
     r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
     rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
-    life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max)
+    life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max, to_write=False)
+    age = Variable('age', dtype=np.float64, initial=0.0)
 
 
 plastic_ptype = {'scipy': MicroplasticsScipy, 'jit': MicroplasticsJIT}
