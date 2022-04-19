@@ -340,7 +340,8 @@ class MicroplasticsJIT(JITParticle):
     r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
     rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
-    life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max)
+    life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max, to_write=False)
+    age = Variable('age', dtype=np.float64, initial=0.0)
 
 
 class MicroplasticsScipy(ScipyParticle):
