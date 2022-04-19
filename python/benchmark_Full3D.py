@@ -278,7 +278,7 @@ def aging(particle, fieldset, time):
 def labelling(particle, fieldset, time):
     mdays = math.floor(time / (60.0*60.0*24.0))
     # particle.label = min(particle.label, math.floor(mdays / fieldset.days_per_season))
-    particle.season_label = math.min(math.floor(mdays / fieldset.days_per_season), particle.season_label)  # NOQA
+    particle.season_label = min(math.floor(mdays / fieldset.days_per_season), particle.season_label)  # math.  # NOQA
 
 
 def perIterGC():
