@@ -705,6 +705,7 @@ if __name__ == "__main__":
     z_additional = np.ones(lon_additional.shape[0], dtype=lon_additional.dtype)
 
     print("|startlon| = {}, |startlat| = {}, |startdepth| = {}; |lon| = {}; |lat| = {}, |depth| = {}".format(lon_additional.shape[0], lat_additional.shape[0], z_additional.shape[0], lon_release.shape[0], lat_release.shape[0], z_release.shape[0]))
+    print("startlon.size = {}, startlat.size = {}, startdepth.size = {}; lon.size = {}; lat.size = {}, depth.size = {}".format(lon_additional.size, lat_additional.size, z_additional.size, lon_release.size, lat_release.size, z_release.size))
     pset = ParticleSet.from_list(fieldset=fieldset,         # the fields on which the particles are advected
                                  pclass=plastic_ptype[(args.compute_mode).lower()],   # the type of particles (JITParticle or ScipyParticle)  # plastic_particle
                                  lon= lon_additional,          # a vector of release longitudes
