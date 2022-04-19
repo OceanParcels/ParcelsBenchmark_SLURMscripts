@@ -292,7 +292,7 @@ def Profiles(particle, fieldset, time):
     #particle.d_tpp = fieldset.d_tpp[time,particle.depth,particle.lat,particle.lon]
     #particle.nd_tpp = fieldset.nd_tpp[time,particle.depth,particle.lat,particle.lon]
     particle.tpp3 = fieldset.tpp3[time,particle.depth,particle.lat,particle.lon]
-    particle.euph_z = fieldset.euph_z[time,particle.depth,particle.lat,particle.lon]
+    # particle.euph_z = fieldset.euph_z[time,particle.depth,particle.lat,particle.lon]
     particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
     particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
     particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
@@ -324,7 +324,7 @@ class MicroplasticsJIT(JITParticle):
     tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
-    euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
+    # euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
     a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
     a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
@@ -358,7 +358,7 @@ class MicroplasticsScipy(ScipyParticle):
     tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
-    euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
+    # euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
     a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
     a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
