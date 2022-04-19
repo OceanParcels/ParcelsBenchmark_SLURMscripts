@@ -413,8 +413,8 @@ if __name__ == "__main__":
     np.random.seed(nowtime.microsecond)
     start_N_particles = int(Nparticle / 2.0)
 
-    sx = int(math.sqrt(start_N_particles))
-    sy = sx
+    sy = int(math.sqrt(start_N_particles / 2.0))
+    sx = 2 * sy
     start_N_particles = sx * sy
 
     repeatRateMinutes = 720  # [min]
@@ -685,8 +685,9 @@ if __name__ == "__main__":
     logger.info("simStart: {}".format(simStart))
     fieldset.add_constant('life_expectancy', delta(days=time_in_days).total_seconds())
     fieldset.add_constant('gauss_scaler', gauss_scaler)
-    asx = int(math.sqrt(start_N_particles))  # /4.0
-    asy = asx
+
+    asy = int(math.sqrt(start_N_particles / 2.0))
+    asx = 2 * asy
     addParticleN = asx * asy
     refresh_cycle = (delta(days=time_in_days).total_seconds() / (addParticleN/start_N_particles)) / cycle_scaler
     refresh_cycle /= cycle_scaler
@@ -700,9 +701,13 @@ if __name__ == "__main__":
 
     """ Defining the particle set """
     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
-    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype)
+    lon_release = lon_release.flatten()
+    lat_release = lat_release.flatten()
+    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype).flatten()
     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
-    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype)
+    lon_additional = lon_additional.flatten()
+    lat_additional = lat_additional.flatten()
+    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype).flatten()
 
     print("|startlon| = {}, |startlat| = {}, |startdepth| = {}; |lon| = {}; |lat| = {}, |depth| = {}".format(lon_additional.shape[0], lat_additional.shape[0], z_additional.shape[0], lon_release.shape[0], lat_release.shape[0], z_release.shape[0]))
     print("startlon.size = {}, startlat.size = {}, startdepth.size = {}; lon.size = {}; lat.size = {}, depth.size = {}".format(lon_additional.size, lat_additional.size, z_additional.size, lon_release.size, lat_release.size, z_release.size))
