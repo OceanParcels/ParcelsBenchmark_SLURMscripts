@@ -278,7 +278,7 @@ def aging(particle, fieldset, time):
 def labelling(particle, fieldset, time):
     mdays = math.floor(time / (60.0*60.0*24.0))
     # particle.label = min(particle.label, math.floor(mdays / fieldset.days_per_season))
-    particle.season_label = min(math.floor(mdays / fieldset.days_per_season), particle.season_label)  # math.  # NOQA
+    particle.season_label = math.fmod(min(math.floor(mdays / fieldset.days_per_season), particle.season_label), 4)  # NOQA
 
 
 def perIterGC():
@@ -292,10 +292,8 @@ def Profiles(particle, fieldset, time):
     #particle.d_tpp = fieldset.d_tpp[time,particle.depth,particle.lat,particle.lon]
     #particle.nd_tpp = fieldset.nd_tpp[time,particle.depth,particle.lat,particle.lon]
     particle.tpp3 = fieldset.tpp3[time,particle.depth,particle.lat,particle.lon]
-    # particle.euph_z = fieldset.euph_z[time,particle.depth,particle.lat,particle.lon]
     particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
-    particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
-    # particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
+    particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon]
 
 
 def sample_dir(particle, fieldset, time):
@@ -324,7 +322,6 @@ class MicroplasticsJIT(JITParticle):
     tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
-    # euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
     a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
     a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
@@ -358,7 +355,6 @@ class MicroplasticsScipy(ScipyParticle):
     tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
-    # euph_z = Variable('euph_z',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
     a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
     a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
@@ -689,7 +685,7 @@ if __name__ == "__main__":
     logger.info("simStart: {}".format(simStart))
     fieldset.add_constant('life_expectancy', delta(days=time_in_days).total_seconds())
     fieldset.add_constant('gauss_scaler', gauss_scaler)
-    asx = int(math.sqrt(start_N_particles/4.0))
+    asx = int(math.sqrt(start_N_particles))  # /4.0
     asy = asx
     addParticleN = asx * asy
     refresh_cycle = (delta(days=time_in_days).total_seconds() / (addParticleN/start_N_particles)) / cycle_scaler
