@@ -295,7 +295,7 @@ def Profiles(particle, fieldset, time):
     # particle.euph_z = fieldset.euph_z[time,particle.depth,particle.lat,particle.lon]
     particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
     particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
-    particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
+    # particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
 
 
 def sample_dir(particle, fieldset, time):
