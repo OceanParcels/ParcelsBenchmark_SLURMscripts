@@ -268,7 +268,7 @@ def aging(particle, fieldset, time):
     # np_scaler = math.sqrt(3.0 / 2.0) -> fieldset.gauss_scaler
     rel_expectancy = fieldset.life_expectancy - time
     if particle.life_expectancy > fieldset.life_expectancy:
-        particle.life_expectancy = time + ParcelsRandom.uniform(.0, rel_expectancy * 2.0 / fieldset.gauss_scaler)
+        particle.life_expectancy = time + ParcelsRandom.uniform((rel_expectancy / 2.0) / fieldset.gauss_scaler, (rel_expectancy * 2.0) / fieldset.gauss_scaler)
     if particle.state == ErrorCode.Evaluate:
         particle.age = particle.age + math.fabs(particle.dt)
     if particle.age > particle.life_expectancy:
