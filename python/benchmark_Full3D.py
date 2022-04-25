@@ -384,7 +384,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--periodic", dest="periodic", action='store_true', default=False, help="enable/disable periodic wrapping (else: extrapolation)")
     parser.add_argument("-d", "--delParticle", dest="delete_particle", action='store_true', default=False, help="switch to delete a particle (True) or periodic-wrapping (and resetting) a particle (default: False).")
     parser.add_argument("-w", "--writeout", dest="write_out", action='store_true', default=False, help="write data in outfile")
-    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*366", help="runtime in days (default: 1*365)")
+    parser.add_argument("-t", "--time_in_days", dest="time_in_days", type=str, default="1*366", help="runtime in days (default: 1*366)")
     parser.add_argument("-tp", "--type", dest="pset_type", default="soa", help="particle set type = [SOA, AOS, Nodes]")
     parser.add_argument("-G", "--GC", dest="useGC", action='store_true', default=False, help="using a garbage collector (default: false)")
     parser.add_argument("-chs", "--chunksize", dest="chs", type=int, default=0, help="defines the chunksize level: 0=None, 1='auto', 2=fine tuned; default: 0")
@@ -432,7 +432,7 @@ if __name__ == "__main__":
 
     branch = "soa_benchmark"
     computer_env = "local/unspecified"
-    scenario = "deep_migration"
+    scenario = "full3D"
     headdir = ""
     odir = ""
     datahead = ""
@@ -443,7 +443,7 @@ if __name__ == "__main__":
     year = 2000
     if fnmatch.fnmatchcase(os.uname()[1], "science-bs*"):  # Gemini
         # headdir = "/scratch/{}/experiments/deep_migration_behaviour".format(os.environ['USER'])
-        headdir = "/scratch/{}/experiments/deep_migration_behaviour".format("ckehl")
+        headdir = "/scratch/{}/experiments/{}".format("ckehl", scenario)
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -461,7 +461,7 @@ if __name__ == "__main__":
         computer_env = "Gemini"
     elif os.uname()[1] in ["lorenz.science.uu.nl", ] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
-        headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/deep_migration_behaviour".format(CARTESIUS_SCRATCH_USERNAME)
+        headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/{}".format(CARTESIUS_SCRATCH_USERNAME, scenario)
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/storage/shared/oceanparcels/input_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -480,7 +480,7 @@ if __name__ == "__main__":
         computer_env = "Lorenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
-        headdir = "/scratch/shared/{}/experiments/deep_migration_behaviour".format(CARTESIUS_SCRATCH_USERNAME)
+        headdir = "/scratch/shared/{}/experiments/{}".format(CARTESIUS_SCRATCH_USERNAME, scenario)
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -498,7 +498,7 @@ if __name__ == "__main__":
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
-        headdir = "/scratch-shared/{}/experiments/deep_migration_behaviour".format(SNELLIUS_SCRATCH_USERNAME)
+        headdir = "/scratch-shared/{}/experiments/{}".format(SNELLIUS_SCRATCH_USERNAME, scenario)
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/projects/0/topios/hydrodynamic_data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -515,7 +515,7 @@ if __name__ == "__main__":
         }
         computer_env = "Snellius"
     else:
-        headdir = "/var/scratch/dlobelle"
+        headdir = "/var/scratch/{}".format(scenario)
         odir = os.path.join(headdir, "BENCHres", str(args.pset_type))
         datahead = "/data"
         dirread_top = os.path.join(datahead, 'NEMO-MEDUSA', 'ORCA0083-N006', 'means')
@@ -766,7 +766,7 @@ if __name__ == "__main__":
     else:
         starttime = ostime.process_time()
 
-    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds = dt_sec), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom, ErrorCode.ErrorInterpolation: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds=dt_sec), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom, ErrorCode.ErrorInterpolation: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
