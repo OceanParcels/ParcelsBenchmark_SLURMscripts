@@ -749,7 +749,7 @@ if __name__ == "__main__":
     output_fpath = None
     if args.write_out and not args.dryrun:
         output_fpath = os.path.join(dirwrite, outfile)
-        pfile = pset.ParticleFile(output_fpath, outputdt=delta(hours=outdt_hours))
+        pfile = pset.ParticleFile(output_fpath, outputdt=delta(hours=outdt_hours).total_seconds())
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(seawaterdensity.polyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
     kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
     if not args.delete_particle:
@@ -766,7 +766,7 @@ if __name__ == "__main__":
     else:
         starttime = ostime.process_time()
 
-    pset.execute(kernels, runtime=delta(days=time_in_days), dt=delta(seconds=dt_sec), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom, ErrorCode.ErrorInterpolation: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    pset.execute(kernels, runtime=delta(days=time_in_days).total_seconds(), dt=delta(seconds=dt_sec).total_seconds(), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom, ErrorCode.ErrorInterpolation: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
