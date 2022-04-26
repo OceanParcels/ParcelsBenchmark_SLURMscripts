@@ -257,11 +257,22 @@ def reflect_top_bottom(particle, fieldset, time):
         particle.depth += 1.0
 
 
+# def periodicBC(particle, fieldset, time):
+#     if particle.lon < 0.:
+#         particle.lon += 360.
+#     elif particle.lon >= 360.:
+#         particle.lon -= 360.
+
+
 def periodicBC(particle, fieldset, time):
-    if particle.lon < 0.:
+    if particle.lon < -180.:
         particle.lon += 360.
-    elif particle.lon >= 360.:
+    elif particle.lon >= 180.:
         particle.lon -= 360.
+    if particle.lat < -90.:
+        particle.lat = -90.0
+    elif particle.lat >= 90.:
+        particle.lat = 90.0
 
 
 def aging(particle, fieldset, time):
@@ -273,6 +284,11 @@ def aging(particle, fieldset, time):
         particle.age = particle.age + math.fabs(particle.dt)
     if particle.age > particle.life_expectancy:
         particle.delete()
+
+
+def trace_aging(particle, fieldset, time):
+    if particle.state == ErrorCode.Evaluate:
+        particle.age = particle.age + math.fabs(particle.dt)
 
 
 def labelling(particle, fieldset, time):
@@ -751,7 +767,8 @@ if __name__ == "__main__":
         output_fpath = os.path.join(dirwrite, outfile)
         pfile = pset.ParticleFile(output_fpath, outputdt=delta(hours=outdt_hours).total_seconds())
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(seawaterdensity.polyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
-    kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
+    # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
+    kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(trace_aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
     if not args.delete_particle:
         kernels += pset.Kernel(periodicBC)
     delete_func = DeleteParticle
