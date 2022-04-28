@@ -49,13 +49,9 @@ lat_release = lat_release0.T
 lon_release = np.tile(np.linspace(-165,-156,10),[10,1]) 
 z_release = np.tile(1,[10,10])
 
-# Choose:
-# simdays = 50.0 * 365.0
-# time0 = 0
-# simhours = 1
-# simmins = 30
 dt_sec = 60
-outdt_hours = 12
+# outdt_hours = 12
+outdt_hours = 24
 
 #--------- Choose below: NOTE- MUST ALSO MANUALLY CHANGE IT IN THE KOOI KERNAL BELOW -----
 rho_pl = 920.                 # density of plastic (kg m-3): DEFAULT FOR FIG 1 in Kooi: 920 but full range is: 840, 920, 940, 1050, 1380 (last 2 are initially non-buoyant)
@@ -719,11 +715,13 @@ if __name__ == "__main__":
     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
     lon_release = lon_release.flatten()
     lat_release = lat_release.flatten()
-    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype).flatten()
+    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype) * 120.0
+    z_release = z_release.flatten()
     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
     lon_additional = lon_additional.flatten()
     lat_additional = lat_additional.flatten()
-    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype).flatten()
+    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype) * 120.0
+    z_additional = z_additional.flatten()
 
     print("|startlon| = {}, |startlat| = {}, |startdepth| = {}; |lon| = {}; |lat| = {}, |depth| = {}".format(lon_additional.shape[0], lat_additional.shape[0], z_additional.shape[0], lon_release.shape[0], lat_release.shape[0], z_release.shape[0]))
     print("startlon.size = {}, startlat.size = {}, startdepth.size = {}; lon.size = {}; lat.size = {}, depth.size = {}".format(lon_additional.size, lat_additional.size, z_additional.size, lon_release.size, lat_release.size, z_release.size))
