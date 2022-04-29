@@ -137,7 +137,8 @@ def Kooi(particle, fieldset, time):
     a_mort = m_a * a
     a_resp = (q10 ** ((t - 20.) / 10.)) * r20 * a
 
-    particle.a += (a_coll + a_growth - a_mort - a_resp) * particle.dt
+    if particle.state == ErrorCode.Evaluate:
+        particle.a += (a_coll + a_growth - a_mort - a_resp) * particle.dt
 
     dn = 2. * (r_tot)  # equivalent spherical diameter [m]
     delta_rho = (rho_tot - rho_sw) / rho_sw  # normalised difference in density between total plastic+bf and seawater[-]
@@ -158,22 +159,20 @@ def Kooi(particle, fieldset, time):
         vs = -1. * (g * kin_visc * w * a_del_rho) ** (1. / 3.)  # m s-1
 
 
-    # if particle.vs_init > 20000.0:
-    #     particle.vs_init = vs
-    particle.vs_init = vs
-
-    z0 = z + vs * particle.dt
-    # change = 0
-    # if z0 <= 0.6:  # NEMO's 'surface depth'
-    #     vs = 0
-    #     particle.depth = 0.6
-    #     change = 1
-    # if z0 >= 4000.:  # NEMO's 'surface depth'
-    #     vs = 0
-    #     particle.depth = 3999.0
-    #     change = 1
-    # if change < 1:
-    #     particle.depth += vs * particle.dt
+    if particle.state == ErrorCode.Evaluate:
+        particle.vs_init = vs
+        z0 = z + vs * particle.dt
+        change = 0
+        if z0 <= 0.6:  # NEMO's 'surface depth'
+            vs = 0
+            particle.depth = 0.6
+            change = 1
+        if z0 >= 4000.:  # NEMO's 'surface depth'
+            vs = 0
+            particle.depth = 3999.0
+            change = 1
+        if change < 1:
+            particle.depth += vs * particle.dt
 
     particle.vs = vs
     particle.rho_tot = rho_tot
@@ -224,14 +223,14 @@ def Kooi_no_biofouling(particle, fieldset, time):
         a_del_rho = delta_rho * -1.
         vs = -1. * (g * kin_visc * w * a_del_rho) ** (1. / 3.)  # m s-1
 
-    if particle.vs_init > 20000.0:
+    if particle.state == ErrorCode.Evaluate:
         particle.vs_init = vs
-    z0 = z + vs * particle.dt
-    if z0 <= 0.6 or z0 >= 4000.:  # NEMO's 'surface depth'
-        vs = 0
-        particle.depth = 0.6
-    else:
-        particle.depth += vs * particle.dt
+        z0 = z + vs * particle.dt
+        if z0 <= 0.6 or z0 >= 4000.:  # NEMO's 'surface depth'
+            vs = 0
+            particle.depth = 0.6
+        else:
+            particle.depth += vs * particle.dt
 
     particle.vs = vs
     particle.rho_tot = rho_tot
