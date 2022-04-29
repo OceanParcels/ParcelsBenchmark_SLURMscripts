@@ -412,7 +412,7 @@ if __name__ == "__main__":
     if args.dryrun:
         ParticleSet = pset_types_dry[pset_type]['pset']
 
-    cleanrun = True
+    cleanrun = False
     imageFileName=args.imageFileName
     time_in_days = int(float(eval(args.time_in_days)))
     time_in_years = int(float(time_in_days)/365.0)
