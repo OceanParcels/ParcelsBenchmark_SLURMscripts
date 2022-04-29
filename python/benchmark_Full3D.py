@@ -718,12 +718,12 @@ if __name__ == "__main__":
     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
     lon_release = lon_release.flatten()
     lat_release = lat_release.flatten()
-    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype) * 500.0
+    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype) * 5.0
     z_release = z_release.flatten()
     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
     lon_additional = lon_additional.flatten()
     lat_additional = lat_additional.flatten()
-    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype) * 500.0
+    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype) * 5.0
     z_additional = z_additional.flatten()
 
     print("|startlon| = {}, |startlat| = {}, |startdepth| = {}; |lon| = {}; |lat| = {}, |depth| = {}".format(lon_additional.shape[0], lat_additional.shape[0], z_additional.shape[0], lon_release.shape[0], lat_release.shape[0], z_release.shape[0]))
@@ -750,7 +750,8 @@ if __name__ == "__main__":
         pset.add(psetA)
     else:
         # time_field = (np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64)
-        time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0] * lon_release.shape[1], dtype=np.datetime64)
+        # time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0] * lon_release.shape[1], dtype=np.datetime64)
+        time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0], dtype=np.datetime64)
         # pdata = np.concatenate( (lonlat_field, time_field), axis=1 )
         pdata = {'lon': lon_release, 'lat': lat_release, 'depth': z_release, 'time': time_field}
         pset.add(pdata)
@@ -770,9 +771,10 @@ if __name__ == "__main__":
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(seawaterdensity.polyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
     kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(trace_aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
+    delete_func = DeleteParticle
     if not args.delete_particle:
         kernels += pset.Kernel(periodicBC)
-    delete_func = DeleteParticle
+    #     delete_func = periodicBC
 
     starttime = 0
     endtime = 0
