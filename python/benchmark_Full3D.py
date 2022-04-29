@@ -158,7 +158,9 @@ def Kooi(particle, fieldset, time):
         a_del_rho = delta_rho * -1.
         vs = -1. * (g * kin_visc * w * a_del_rho) ** (1. / 3.)  # m s-1
 
-    particle.vs_init = vs
+
+    if particle.vs_init > 20000.0:
+        particle.vs_init = vs
 
     z0 = z + vs * particle.dt
     change = 0
@@ -222,7 +224,8 @@ def Kooi_no_biofouling(particle, fieldset, time):
         a_del_rho = delta_rho * -1.
         vs = -1. * (g * kin_visc * w * a_del_rho) ** (1. / 3.)  # m s-1
 
-    particle.vs_init = vs
+    if particle.vs_init > 20000.0:
+        particle.vs_init = vs
     z0 = z + vs * particle.dt
     if z0 <= 0.6 or z0 >= 4000.:  # NEMO's 'surface depth'
         vs = 0
@@ -247,10 +250,10 @@ def DeleteParticle(particle, fieldset, time):
 
 # ==== in this way, only to be used as error-action function ==== #
 def reflect_top_bottom(particle, fieldset, time):
-    if particle.depth > 1.0:
-        particle.depth -= 1.0
-    else:
+    if particle.depth < 1.0:
         particle.depth += 1.0
+    else:
+        particle.depth -= 1.0
 
 
 # def periodicBC(particle, fieldset, time):
@@ -309,7 +312,7 @@ def Profiles(particle, fieldset, time):
 
 
 def sample_dir(particle, fieldset, time):
-    if particle.prev_x > 360.0 and particle.prev_y > 180.0 and particle.prev_z > 16000.0:
+    if (particle.prev_x < 360.0) and (particle.prev_y < 180.0) and (particle.prev_z < 16000.0):
         particle.dir_x = particle.lon - particle.prev_x
         particle.dir_y = particle.lat - particle.prev_y
         particle.dir_z = particle.depth - particle.prev_z
@@ -346,7 +349,7 @@ class MicroplasticsJIT(JITParticle):
     rho_tot = Variable('rho_tot',dtype=np.float32,to_write=True)
     r_tot = Variable('r_tot',dtype=np.float32,to_write=True)
     delta_rho = Variable('delta_rho',dtype=np.float32,to_write=True)
-    vs_init = Variable('vs_init',dtype=np.float32,to_write=True)
+    vs_init = Variable('vs_init',dtype=np.float32, initial=np.finfo(np.float32).max,to_write=True)
     r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
     rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
@@ -715,12 +718,12 @@ if __name__ == "__main__":
     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
     lon_release = lon_release.flatten()
     lat_release = lat_release.flatten()
-    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype) * 120.0
+    z_release = np.ones(lon_release.shape, dtype=lon_release.dtype) * 500.0
     z_release = z_release.flatten()
     lon_additional, lat_additional = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], asx), np.linspace(EqPac['minlat'], EqPac['maxlat'], asy))
     lon_additional = lon_additional.flatten()
     lat_additional = lat_additional.flatten()
-    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype) * 120.0
+    z_additional = np.ones(lon_additional.shape, dtype=lon_additional.dtype) * 500.0
     z_additional = z_additional.flatten()
 
     print("|startlon| = {}, |startlat| = {}, |startdepth| = {}; |lon| = {}; |lat| = {}, |depth| = {}".format(lon_additional.shape[0], lat_additional.shape[0], z_additional.shape[0], lon_release.shape[0], lat_release.shape[0], z_release.shape[0]))
