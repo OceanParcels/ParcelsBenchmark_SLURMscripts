@@ -44,10 +44,10 @@ NPacific = {'minlon': -175.0, 'maxlon': -145.0, 'minlat': 20.0, 'maxlat': 50.0}
 EqPac = {'minlon': -180.0, 'maxlon': -120.0, 'minlat': -20.0, 'maxlat': 20.0}
 
 # Release particles on a 10x10 deg grid in middle of the 30x30 fieldset grid and 1m depth
-lat_release0 = np.tile(np.linspace(30,39,10),[10,1]) 
-lat_release = lat_release0.T 
-lon_release = np.tile(np.linspace(-165,-156,10),[10,1]) 
-z_release = np.tile(1,[10,10])
+ #lat_release0 = np.tile(np.linspace(30,39,10),[10,1])
+# lat_release = lat_release0.T
+# lon_release = np.tile(np.linspace(-165,-156,10),[10,1])
+# z_release = np.tile(1,[10,10])
 
 dt_sec = 60
 # outdt_hours = 12
@@ -148,8 +148,7 @@ def Kooi(particle, fieldset, time):
     elif dstar < 0.05:
         w = (dstar ** 2.) * 1.71E-4
     else:
-        w = 10. ** (-3.76715 + (1.92944 * math.log10(dstar)) - (0.09815 * math.log10(dstar) ** 2.) - (
-                    0.00575 * math.log10(dstar) ** 3.) + (0.00056 * math.log10(dstar) ** 4.))
+        w = 10. ** (-3.76715 + (1.92944 * math.log10(dstar)) - (0.09815 * math.log10(dstar) ** 2.) - (0.00575 * math.log10(dstar) ** 3.) + (0.00056 * math.log10(dstar) ** 4.))
 
     # ------ Settling of particle -----
     if delta_rho > 0:  # sinks
@@ -159,21 +158,22 @@ def Kooi(particle, fieldset, time):
         vs = -1. * (g * kin_visc * w * a_del_rho) ** (1. / 3.)  # m s-1
 
 
-    if particle.vs_init > 20000.0:
-        particle.vs_init = vs
+    # if particle.vs_init > 20000.0:
+    #     particle.vs_init = vs
+    particle.vs_init = vs
 
     z0 = z + vs * particle.dt
-    change = 0
-    if z0 <= 0.6:  # NEMO's 'surface depth'
-        vs = 0
-        particle.depth = 0.6
-        change = 1
-    if z0 >= 4000.:  # NEMO's 'surface depth'
-        vs = 0
-        particle.depth = 3999.0
-        change = 1
-    if change < 1:
-        particle.depth += vs * particle.dt
+    # change = 0
+    # if z0 <= 0.6:  # NEMO's 'surface depth'
+    #     vs = 0
+    #     particle.depth = 0.6
+    #     change = 1
+    # if z0 >= 4000.:  # NEMO's 'surface depth'
+    #     vs = 0
+    #     particle.depth = 3999.0
+    #     change = 1
+    # if change < 1:
+    #     particle.depth += vs * particle.dt
 
     particle.vs = vs
     particle.rho_tot = rho_tot
@@ -413,6 +413,7 @@ if __name__ == "__main__":
     if args.dryrun:
         ParticleSet = pset_types_dry[pset_type]['pset']
 
+    cleanrun = True
     imageFileName=args.imageFileName
     time_in_days = int(float(eval(args.time_in_days)))
     time_in_years = int(float(time_in_days)/365.0)
@@ -426,7 +427,7 @@ if __name__ == "__main__":
     nowtime = datetime.now()
     ParcelsRandom.seed(nowtime.microsecond)
     np.random.seed(nowtime.microsecond)
-    start_N_particles = int(Nparticle / 2.0)
+    start_N_particles = int(Nparticle / 2.0) if not cleanrun else Nparticle
 
     sy = int(math.sqrt(start_N_particles / 2.0))
     sx = 2 * sy
@@ -701,8 +702,8 @@ if __name__ == "__main__":
     fieldset.add_constant('life_expectancy', delta(days=time_in_days).total_seconds())
     fieldset.add_constant('gauss_scaler', gauss_scaler)
 
-    asy = int(math.sqrt(start_N_particles / 2.0))
-    asx = 2 * asy
+    asy = int(math.sqrt(start_N_particles / 2.0)) if not cleanrun else 3
+    asx = 2 * asy if not cleanrun else 3
     addParticleN = asx * asy
     refresh_cycle = (delta(days=time_in_days).total_seconds() / (addParticleN/start_N_particles)) / cycle_scaler
     refresh_cycle /= cycle_scaler
@@ -735,26 +736,27 @@ if __name__ == "__main__":
                                  # time = (np.ones(lon_additional.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
                                  time=np.datetime64('%s-%s-05' % (str(year), '01')),
                                  depth = z_additional,         # a vector of release depth values
-                                 repeatdt=delta(minutes=repeatRateMinutes),
+                                 repeatdt=delta(minutes=repeatRateMinutes) if not cleanrun else None,
                                  idgen=idgen,
                                  c_lib_register=c_lib_register)
-    if pset_type != 'nodes':
-        psetA = ParticleSet(fieldset=fieldset, pclass=plastic_ptype[(args.compute_mode).lower()],
-                            lon=lon_release,
-                            lat=lat_release,
-                            depth=z_release,
-                            # time=(np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
-                            time=np.datetime64('%s-%s-05' % (str(year), '01')),
-                            idgen=idgen,
-                            c_lib_register=c_lib_register)
-        pset.add(psetA)
-    else:
-        # time_field = (np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64)
-        # time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0] * lon_release.shape[1], dtype=np.datetime64)
-        time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0], dtype=np.datetime64)
-        # pdata = np.concatenate( (lonlat_field, time_field), axis=1 )
-        pdata = {'lon': lon_release, 'lat': lat_release, 'depth': z_release, 'time': time_field}
-        pset.add(pdata)
+    if not cleanrun:
+        if pset_type != 'nodes':
+            psetA = ParticleSet(fieldset=fieldset, pclass=plastic_ptype[(args.compute_mode).lower()],
+                                lon=lon_release,
+                                lat=lat_release,
+                                depth=z_release,
+                                # time=(np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64),
+                                time=np.datetime64('%s-%s-05' % (str(year), '01')),
+                                idgen=idgen,
+                                c_lib_register=c_lib_register)
+            pset.add(psetA)
+        else:
+            # time_field = (np.ones(lon_release.shape) * np.datetime64('%s-%s-05' % (str(year), '01'))).astype(dtype=np.datetime64)
+            # time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0] * lon_release.shape[1], dtype=np.datetime64)
+            time_field = np.array([np.datetime64('%s-%s-05' % (str(year), '01')), ] * lon_release.shape[0], dtype=np.datetime64)
+            # pdata = np.concatenate( (lonlat_field, time_field), axis=1 )
+            pdata = {'lon': lon_release, 'lat': lat_release, 'depth': z_release, 'time': time_field}
+            pset.add(pdata)
 
     """ Kernel + Execution"""
     postProcessFuncs = None
