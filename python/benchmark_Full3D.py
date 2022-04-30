@@ -174,10 +174,11 @@ def Kooi(particle, fieldset, time):
         if change < 1:
             particle.depth += vs * particle.dt
 
-    particle.vs = vs
-    particle.rho_tot = rho_tot
-    particle.r_tot = r_tot
-    particle.delta_rho = delta_rho
+        particle.vs = vs
+        particle.rho_tot = rho_tot
+        particle.r_tot = r_tot
+        particle.t_bf = t_bf
+        particle.delta_rho = delta_rho
 
 
 def Kooi_no_biofouling(particle, fieldset, time):
@@ -232,10 +233,11 @@ def Kooi_no_biofouling(particle, fieldset, time):
         else:
             particle.depth += vs * particle.dt
 
-    particle.vs = vs
-    particle.rho_tot = rho_tot
-    particle.r_tot = r_tot
-    particle.delta_rho = delta_rho
+        particle.vs = vs
+        particle.rho_tot = rho_tot
+        particle.r_tot = r_tot
+        particle.t_bf = r_pl
+        particle.delta_rho = delta_rho
 
 
 """functions and kernels"""
@@ -337,9 +339,9 @@ class MicroplasticsJIT(JITParticle):
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
-    a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
-    a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
-    a_resp = Variable('a_resp', dtype=np.float32, to_write=True)
+    # a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
+    # a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
+    # a_resp = Variable('a_resp', dtype=np.float32, to_write=True)
     kin_visc = Variable('kin_visc',dtype=np.float32,to_write=True)
     sw_visc = Variable('sw_visc',dtype=np.float32,to_write=True)
     vs = Variable('vs',dtype=np.float32,to_write=True)
@@ -349,6 +351,7 @@ class MicroplasticsJIT(JITParticle):
     r_tot = Variable('r_tot',dtype=np.float32,to_write=True)
     delta_rho = Variable('delta_rho',dtype=np.float32,to_write=True)
     vs_init = Variable('vs_init',dtype=np.float32, initial=np.finfo(np.float32).max,to_write=True)
+    t_bf = Variable('t_bf',dtype=np.float32,to_write=True)
     r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
     rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
@@ -370,9 +373,9 @@ class MicroplasticsScipy(ScipyParticle):
     d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
     nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
     a = Variable('a',dtype=np.float32,to_write=True)
-    a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
-    a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
-    a_resp = Variable('a_resp', dtype=np.float32, to_write=True)
+    # a_coll = Variable('a_coll', dtype=np.float32, to_write=True)
+    # a_growth = Variable('a_growth', dtype=np.float32, to_write=True)
+    # a_resp = Variable('a_resp', dtype=np.float32, to_write=True)
     kin_visc = Variable('kin_visc',dtype=np.float32,to_write=True)
     sw_visc = Variable('sw_visc',dtype=np.float32,to_write=True)
     vs = Variable('vs',dtype=np.float32,to_write=True)
@@ -381,7 +384,8 @@ class MicroplasticsScipy(ScipyParticle):
     rho_tot = Variable('rho_tot',dtype=np.float32,to_write=True)
     r_tot = Variable('r_tot',dtype=np.float32,to_write=True)
     delta_rho = Variable('delta_rho',dtype=np.float32,to_write=True)
-    vs_init = Variable('vs_init',dtype=np.float32,to_write=True)
+    vs_init = Variable('vs_init',dtype=np.float32, initial=np.finfo(np.float32).max,to_write=True)
+    t_bf = Variable('t_bf',dtype=np.float32,to_write=True)
     r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
     rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
