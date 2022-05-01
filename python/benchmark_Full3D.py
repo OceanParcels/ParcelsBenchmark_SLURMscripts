@@ -416,7 +416,7 @@ if __name__ == "__main__":
     if args.dryrun:
         ParticleSet = pset_types_dry[pset_type]['pset']
 
-    cleanrun = False
+    cleanrun = True
     imageFileName=args.imageFileName
     time_in_days = int(float(eval(args.time_in_days)))
     time_in_years = int(float(time_in_days)/365.0)
@@ -432,9 +432,9 @@ if __name__ == "__main__":
     np.random.seed(nowtime.microsecond)
     start_N_particles = int(Nparticle / 2.0) if not cleanrun else Nparticle
 
-    sy = int(math.sqrt(start_N_particles / 2.0))
-    sx = 2 * sy
-    start_N_particles = sx * sy
+    sy = int(math.sqrt(start_N_particles / 2.0))  if not cleanrun else 3
+    sx = 2 * sy  if not cleanrun else 3
+    start_N_particles = sx * sy if not cleanrun else start_N_particles
 
     repeatRateMinutes = 720  # [min]
 
@@ -705,8 +705,8 @@ if __name__ == "__main__":
     fieldset.add_constant('life_expectancy', delta(days=time_in_days).total_seconds())
     fieldset.add_constant('gauss_scaler', gauss_scaler)
 
-    asy = int(math.sqrt(start_N_particles / 2.0)) if not cleanrun else 3
-    asx = 2 * asy if not cleanrun else 3
+    asy = int(math.sqrt(start_N_particles / 2.0))
+    asx = 2 * asy
     addParticleN = asx * asy
     refresh_cycle = (delta(days=time_in_days).total_seconds() / (addParticleN/start_N_particles)) / cycle_scaler
     refresh_cycle /= cycle_scaler
