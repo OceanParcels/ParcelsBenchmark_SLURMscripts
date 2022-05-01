@@ -304,9 +304,7 @@ def perIterGC():
 def Profiles(particle, fieldset, time):  
     particle.temp = fieldset.cons_temperature[time, particle.depth,particle.lat,particle.lon]  
     particle.d_phy= fieldset.d_phy[time, particle.depth,particle.lat,particle.lon]  
-    particle.nd_phy= fieldset.nd_phy[time, particle.depth,particle.lat,particle.lon] 
-    #particle.d_tpp = fieldset.d_tpp[time,particle.depth,particle.lat,particle.lon]
-    #particle.nd_tpp = fieldset.nd_tpp[time,particle.depth,particle.lat,particle.lon]
+    particle.nd_phy= fieldset.nd_phy[time, particle.depth,particle.lat,particle.lon]
     particle.tpp3 = fieldset.tpp3[time,particle.depth,particle.lat,particle.lon]
     particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
     particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon]
@@ -352,8 +350,8 @@ class MicroplasticsJIT(JITParticle):
     delta_rho = Variable('delta_rho',dtype=np.float32,to_write=True)
     vs_init = Variable('vs_init',dtype=np.float32, initial=np.finfo(np.float32).max,to_write=True)
     t_bf = Variable('t_bf',dtype=np.float32,to_write=True)
-    r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
-    rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
+    r_pl = Variable('r_pl',dtype=np.float32, initial=eval(r_pl),to_write='once')
+    rho_pl = Variable('rho_pl',dtype=np.float32, initial=rho_pl,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
     life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max, to_write=False)
     age = Variable('age', dtype=np.float64, initial=0.0)
@@ -386,8 +384,8 @@ class MicroplasticsScipy(ScipyParticle):
     delta_rho = Variable('delta_rho',dtype=np.float32,to_write=True)
     vs_init = Variable('vs_init',dtype=np.float32, initial=np.finfo(np.float32).max,to_write=True)
     t_bf = Variable('t_bf',dtype=np.float32,to_write=True)
-    r_pl = Variable('r_pl',dtype=np.float32,to_write='once')
-    rho_pl = Variable('rho_pl',dtype=np.float32,to_write='once')
+    r_pl = Variable('r_pl',dtype=np.float32, initial=eval(r_pl),to_write='once')
+    rho_pl = Variable('rho_pl',dtype=np.float32, initial=rho_pl,to_write='once')
     season_label = Variable('season_label', dtype=np.float32, initial=np.finfo(np.float32).max)
     life_expectancy = Variable('life_expectancy', dtype=np.float64, initial=np.finfo(np.float64).max, to_write=False)
     age = Variable('age', dtype=np.float64, initial=0.0)
@@ -717,6 +715,8 @@ if __name__ == "__main__":
     days_per_season = math.floor(366.0 / 4.0)
     logger.info("Nr. seasons: {}; days_per_season: {}".format(nr_seasons, days_per_season))
     fieldset.add_constant('days_per_season', days_per_season)
+    fieldset.add_constant("r_pl", eval(r_pl))
+    fieldset.add_constant("rho_pl", rho_pl)
 
     """ Defining the particle set """
     lon_release, lat_release = np.meshgrid(np.linspace(EqPac['minlon'], EqPac['maxlon'], sx), np.linspace(EqPac['minlat'], EqPac['maxlat'], sy))
