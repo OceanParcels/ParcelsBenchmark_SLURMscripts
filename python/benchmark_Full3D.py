@@ -776,7 +776,11 @@ if __name__ == "__main__":
         pfile = pset.ParticleFile(output_fpath, outputdt=delta(hours=outdt_hours).total_seconds())
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(seawaterdensity.polyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi)
     # kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
-    kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(trace_aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
+    kernel = None
+    if not cleanrun:
+        kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
+    else:
+        kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(trace_aging) + pset.Kernel(seawaterdensity.PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi) + pset.Kernel(labelling) + pset.Kernel(sample_dir)
     delete_func = DeleteParticle
     if not args.delete_particle:
         kernels += pset.Kernel(periodicBC)
@@ -791,7 +795,6 @@ if __name__ == "__main__":
             starttime = ostime.process_time()
     else:
         starttime = ostime.process_time()
-
     pset.execute(kernels, runtime=delta(days=time_in_days).total_seconds(), dt=delta(seconds=dt_sec).total_seconds(), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
     # , ErrorCode.ErrorInterpolation: delete_func
 
