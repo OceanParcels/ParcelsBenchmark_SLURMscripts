@@ -279,7 +279,8 @@ def aging(particle, fieldset, time):
     # np_scaler = math.sqrt(3.0 / 2.0) -> fieldset.gauss_scaler
     rel_expectancy = fieldset.life_expectancy - time
     if particle.life_expectancy > fieldset.life_expectancy:
-        particle.life_expectancy = time + ParcelsRandom.uniform((rel_expectancy / 2.0) / fieldset.gauss_scaler, (rel_expectancy * 2.0) / fieldset.gauss_scaler)
+        lifespan = (rel_expectancy / 2.0) / fieldset.gauss_scaler
+        particle.life_expectancy = time + ParcelsRandom.uniform((rel_expectancy / 2.0) - lifespan, (rel_expectancy * 2.0) + lifespan)
     if particle.state == ErrorCode.Evaluate:
         particle.age = particle.age + math.fabs(particle.dt)
     if particle.age > particle.life_expectancy:
@@ -414,7 +415,7 @@ if __name__ == "__main__":
     if args.dryrun:
         ParticleSet = pset_types_dry[pset_type]['pset']
 
-    cleanrun = True
+    cleanrun = False
     imageFileName=args.imageFileName
     time_in_days = int(float(eval(args.time_in_days)))
     time_in_years = int(float(time_in_days)/365.0)
@@ -703,11 +704,11 @@ if __name__ == "__main__":
     fieldset.add_constant('life_expectancy', delta(days=time_in_days).total_seconds())
     fieldset.add_constant('gauss_scaler', gauss_scaler)
 
-    asy = int(math.sqrt(start_N_particles / 2.0))
+    asy = int(math.sqrt(Nparticle / 2.0))
     asx = 2 * asy
     addParticleN = asx * asy
-    refresh_cycle = (delta(days=time_in_days).total_seconds() / (addParticleN/start_N_particles)) / cycle_scaler
-    refresh_cycle /= cycle_scaler
+    refresh_cycle = min((delta(days=time_in_days).total_seconds() / (addParticleN/start_N_particles)), delta(days=14).total_seconds())
+    refresh_cycle /= (cycle_scaler * cycle_scaler)
     repeatRateMinutes = int(refresh_cycle/60.0) if repeatRateMinutes == 720 else repeatRateMinutes
 
     # ==== Setup season labelling ==== #
@@ -791,7 +792,8 @@ if __name__ == "__main__":
     else:
         starttime = ostime.process_time()
 
-    pset.execute(kernels, runtime=delta(days=time_in_days).total_seconds(), dt=delta(seconds=dt_sec).total_seconds(), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom, ErrorCode.ErrorInterpolation: delete_func}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    pset.execute(kernels, runtime=delta(days=time_in_days).total_seconds(), dt=delta(seconds=dt_sec).total_seconds(), output_file=pfile, verbose_progress=True, recovery={ErrorCode.ErrorOutOfBounds: delete_func, ErrorCode.ErrorThroughSurface: reflect_top_bottom}, postIterationCallbacks=postProcessFuncs, callbackdt=callbackdt)
+    # , ErrorCode.ErrorInterpolation: delete_func
 
     if MPI:
         mpi_comm = MPI.COMM_WORLD
