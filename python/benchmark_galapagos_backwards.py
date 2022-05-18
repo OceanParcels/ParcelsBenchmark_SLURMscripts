@@ -112,9 +112,9 @@ def create_galapagos_fieldset(datahead, basefile_str, stokeshead, stokes_variabl
         nemo_nchs = False
 
     if meshfile is None:
-        fieldset_nemo = FieldSet.from_netcdf(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
+        fieldset_nemo = FieldSet.from_netcdf(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period if periodic_wrap else False, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
     else:
-        fieldset_nemo = FieldSet.from_nemo(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
+        fieldset_nemo = FieldSet.from_nemo(nemo_files, nemo_variables, nemo_dimensions, time_periodic=period if periodic_wrap else False, allow_time_extrapolation=extrapolation, chunksize=nemo_nchs)
 
     fU = None
     fV = None
@@ -286,14 +286,14 @@ if __name__=='__main__':
         dirread_hydro = os.path.join(dirread_top, 'means')
         dirmesh = os.path.join(dirread_top, 'domain')
         dirread_stokes = os.path.join(datahead, 'WaveWatch3data', 'CFSR')
-        computer_env = "Gemini"
         basefile_str = {
             'U': 'ORCA0083-N06_200[0-9]????d05U.nc',
             'V': 'ORCA0083-N06_200[0-9]????d05V.nc'
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokesfile_str = "WW3-GLOB-30M_20????_uss.nc"
-        period = delta(days=366*10)  # 10 years period
+        #period = delta(days=366*10)  # 10 years period
+        computer_env = "Gemini"
     elif os.uname()[1] in ["lorenz.science.uu.nl",] or fnmatch.fnmatchcase(os.uname()[1], "node*"):  # Lorenz
         CARTESIUS_SCRATCH_USERNAME = 'ckehl'
         headdir = "/storage/shared/oceanparcels/output_data/data_{}/experiments/galapagos".format(CARTESIUS_SCRATCH_USERNAME)
@@ -303,14 +303,10 @@ if __name__=='__main__':
         dirread_hydro = dirread_top
         dirmesh = dirread_top
         dirread_stokes = os.path.join(datahead, 'CMEMS', 'GLOBAL_ANALYSIS_FORECAST_PHY_001_024_SMOC')
-        # basefile_str = {
-        #     'U': 'ORCA0083-N06_2004????d05U.nc',
-        #     'V': 'ORCA0083-N06_2004????d05V.nc'
-        # }
         basefile_str = "SMOC_2019*.nc"
         stokes_variables = {'U': 'vsdx', 'V': 'vsdy'}
         stokesfile_str = "SMOC_2019*.nc"
-        period = delta(days=366)  # 1 years period
+        #period = delta(days=366)  # 1 years period
         computer_env = "Lorenz"
     elif fnmatch.fnmatchcase(os.uname()[1], "*.bullx*"):  # Cartesius
         CARTESIUS_SCRATCH_USERNAME = 'ckehluu'
@@ -327,7 +323,7 @@ if __name__=='__main__':
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokesfile_str = "WW3-GLOB-30M_200[0-9]??_uss.nc"
-        period = delta(days=366*10)  # 10 years period
+        #period = delta(days=366*10)  # 10 years period
         computer_env = "Cartesius"
     elif fnmatch.fnmatchcase(os.uname()[1], "int*.snellius.*") or fnmatch.fnmatchcase(os.uname()[1], "fcn*") or fnmatch.fnmatchcase(os.uname()[1], "tcn*") or fnmatch.fnmatchcase(os.uname()[1], "gcn*") or fnmatch.fnmatchcase(os.uname()[1], "hcn*"):  # Snellius
         SNELLIUS_SCRATCH_USERNAME = 'ckehluu'
@@ -344,7 +340,7 @@ if __name__=='__main__':
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokesfile_str = "WW3-GLOB-30M_200[0-9]??_uss.nc"
-        period = delta(days=366*10)  # 10 years period
+        #period = delta(days=366*10)  # 10 years period
         computer_env = "Snellius"
     else:
         headdir = "/var/scratch/galapagos"
@@ -360,11 +356,10 @@ if __name__=='__main__':
         }
         stokes_variables = {'U': 'uuss', 'V': 'vuss'}
         stokesfile_str = "WW3-*_2000??_uss.nc"
-        period = delta(days=366)  # 1 years period
+        #period = delta(days=366)  # 1 years period
+    period = time_in_days
 
     print("running {} on {} (uname: {}) - branch '{}' - argv: {}".format(scenario, computer_env, os.uname()[1], branch, sys.argv[1:]))
-
-
 
     # ddir = os.path.join(datahead,"NEMO-MEDUSA/ORCA0083-N006/")
     # ufiles = sorted(glob(ddir+'means/ORCA0083-N06_20[00-10]*d05U.nc'))
@@ -433,9 +428,10 @@ if __name__=='__main__':
     #                                  np.arange(galapagos_extent[2], galapagos_extent[3], 0.2))
     startlon, startlat = np.meshgrid(np.linspace(galapagos_extent[0], galapagos_extent[1], sx),
                                      np.linspace(galapagos_extent[2], galapagos_extent[3], sy))
-    starttimes = np.array([fU.grid.time[-1], ] * startlon.shape[0])
+    # starttimes = np.array([fU.grid.time[-1], ] * startlon.shape[0])
+    starttimes = np.array(fU.grid.time[-1])
 
-    print("|lon| = {}; |lat| = {}; [times] = {}".format(startlon.shape[0], startlat.shape[0], starttimes.shape[0]))
+    print("|lon| = {}; |lat| = {}; [times] = {}".format(startlon.shape, startlat.shape, starttimes.shape))
 
     pset = ParticleSet(fieldset=fieldset, pclass=galapagos_particles[args.compute_mode], lon=startlon, lat=startlat, time=starttimes, repeatdt=delta(days=7), idgen=idgen, c_lib_register=c_lib_register)
     """ Kernel + Execution"""
